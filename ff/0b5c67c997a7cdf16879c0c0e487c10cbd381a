@@ -1,0 +1,813 @@
+.gitattributes
+  s_bb204f9a0e77ba::t_61b0acce38aadd 1-7
+.github/workflows/test.yml
+  s_bb204f9a0e77ba::t_3381a17d1432db 1-30
+.gitignore
+  s_bb204f9a0e77ba::t_129abb9ad4a2b0 1-6
+AGENTS.md
+  s_bb204f9a0e77ba::t_97c25fecbe9442 1-9
+Install-Jax.ps1
+  s_bb204f9a0e77ba::t_f842feaf330107 1-137
+Jax.Autocomplete.psm1
+  s_bb204f9a0e77ba::t_8dd5d0e5e48ba1 1-4
+Jax.psd1
+  s_bb204f9a0e77ba::t_f50c6be8d7f42f 1-24
+Jax.psm1
+  s_bb204f9a0e77ba::t_77b6270be338b3 1-22
+MustachePlaceholders/MustachePlaceholders.psm1
+  s_bb204f9a0e77ba::t_463acd506985f7 1-40
+MustachePlaceholders/functions/README.md
+  s_bb204f9a0e77ba::t_6a80be0c5ae93d 1-18
+MustachePlaceholders/functions/bool.ps1
+  s_bb204f9a0e77ba::t_d6f483c59642d6 1-3
+MustachePlaceholders/functions/coalesce.ps1
+  s_bb204f9a0e77ba::t_a3cb08b694aaec 1-7
+MustachePlaceholders/functions/collections.ps1
+  s_bb204f9a0e77ba::t_aa5bdc4b2a67b6 1-90
+MustachePlaceholders/functions/comparators.ps1
+  s_bb204f9a0e77ba::t_eb6891345b703e 1-6
+MustachePlaceholders/functions/conditionals.ps1
+  s_bb204f9a0e77ba::t_40a63c3415a61e 1-5
+MustachePlaceholders/functions/default.ps1
+  s_bb204f9a0e77ba::t_30267394c605ca 1-28
+MustachePlaceholders/functions/env.ps1
+  s_bb204f9a0e77ba::t_ac2ee7904a7577 1-6
+MustachePlaceholders/functions/isEmpty.ps1
+  s_bb204f9a0e77ba::t_b37978f69d52d6 1-5
+MustachePlaceholders/functions/isSet.ps1
+  s_bb204f9a0e77ba::t_4db718315c3bd8 1-7
+MustachePlaceholders/functions/pathSafe.ps1
+  s_bb204f9a0e77ba::t_bcf36f8023610f 1-16
+MustachePlaceholders/functions/replace.ps1
+  s_bb204f9a0e77ba::t_b8e481c4b9729f 1-16
+MustachePlaceholders/functions/strings.ps1
+  s_bb204f9a0e77ba::t_154455c79f7d30 1-35
+MustachePlaceholders/functions/substring.ps1
+  s_bb204f9a0e77ba::t_eb1f42273acd6b 1-15
+MustachePlaceholders/functions/toLower.ps1
+  s_bb204f9a0e77ba::t_8a0ab9bf0a73f1 1-6
+MustachePlaceholders/functions/toUpper.ps1
+  s_bb204f9a0e77ba::t_775fc13968a4ff 1-6
+MustachePlaceholders/functions/whenEq.ps1
+  s_bb204f9a0e77ba::t_64d647f3861270 1-10
+MustachePlaceholders/functions/yamlFile.ps1
+  s_bb204f9a0e77ba::t_dc595e6e237011 1-37
+MustachePlaceholders/private/Ensure-OrderedOrHashtable.ps1
+  s_bb204f9a0e77ba::t_e6a2a750d052f2 1-15
+MustachePlaceholders/private/Expand-PlaceholderPipelineRec.ps1
+  s_bb204f9a0e77ba::t_72371e47b7c016 1-89
+MustachePlaceholders/private/Expand-PlaceholdersRec.ps1
+  s_bb204f9a0e77ba::t_db01d3fa2e3e05 1-262
+MustachePlaceholders/private/Get-CommonParameters.ps1
+  s_bb204f9a0e77ba::t_46e86090c9107b 1-30
+MustachePlaceholders/private/Invoke-PlaceholderFunction.ps1
+  s_bb204f9a0e77ba::t_4b037d102c7590 1-34
+MustachePlaceholders/private/Resolve-PlaceholderOrThrow.ps1
+  s_bb204f9a0e77ba::t_4532531b49c01b 1-26
+MustachePlaceholders/private/Test-IsOrderedDictionary.ps1
+  s_bb204f9a0e77ba::t_879704228efac2 1-7
+MustachePlaceholders/private/Test-IsOrderedDictionaryOrHashtable.ps1
+  s_bb204f9a0e77ba::t_ea743a0e66955a 1-12
+MustachePlaceholders/private/Throw-PlaceholderNotFound.ps1
+  s_bb204f9a0e77ba::t_1703a388d42159 1-62
+MustachePlaceholders/public/Convert-PlaceholderMatch.ps1
+  s_bb204f9a0e77ba::t_ac94a13f372ba0 1-11
+MustachePlaceholders/public/Expand-FlatDottedHashtable.ps1
+  s_bb204f9a0e77ba::t_509f48d779a3f2 1-47
+MustachePlaceholders/public/Expand-Placeholders.ps1
+  s_bb204f9a0e77ba::t_1ca7874cc50b24 1-34
+MustachePlaceholders/public/Expand-PlaceholdersInStrings.ps1
+  s_bb204f9a0e77ba::t_a1cbbeef87287d 1-13
+MustachePlaceholders/public/Get-HashTableFromPowerShellArgs.ps1
+  s_bb204f9a0e77ba::t_ccac7167682e46 1-61
+MustachePlaceholders/public/Get-PathFromHashtable.ps1
+  s_bb204f9a0e77ba::t_2d9fcfefd3207e 1-81
+MustachePlaceholders/public/Get-StringFromHashtable.ps1
+  s_bb204f9a0e77ba::t_4ad3d8020ac3d3 1-27
+MustachePlaceholders/public/Register-PlaceholderFunction.ps1
+  s_bb204f9a0e77ba::t_8d00c05ec69d0c 1-23
+MustachePlaceholders/public/Test-PlaceholderInContext.ps1
+  s_bb204f9a0e77ba::t_dcc2e691187ea7 1-27
+MustachePlaceholders/public/Test-PlaceholderInTree.ps1
+  s_bb204f9a0e77ba::t_156515d854bec7 1-83
+MustachePlaceholders/public/Test-PlaceholderString.ps1
+  s_bb204f9a0e77ba::t_9e47d62d8162c0 1-8
+MustachePlaceholders/public/Test-ValuePrimitive.ps1
+  s_bb204f9a0e77ba::t_2968cebb4d44ca 1-7
+MustachePlaceholders/tests/MustachePlaceholders-integration.tests.ps1
+  s_bb204f9a0e77ba::t_c871da82940941 1-120
+MustachePlaceholders/tests/MustachePlaceholders.tests.ps1
+  s_bb204f9a0e77ba::t_bb732a96b8ee22 1-1695
+MustachePlaceholders/tests/TestHelpers.psm1
+  s_bb204f9a0e77ba::t_0cfddd70e5c1e9 1-36
+MustachePlaceholders/tests/sample_data/overrideHashtable.json
+  s_bb204f9a0e77ba::t_251df0888bca57 1-226
+MustachePlaceholders/tests/sample_data/yamlHashtable.json
+  s_bb204f9a0e77ba::t_47b6338941a61c 1-136
+README.md
+  s_bb204f9a0e77ba::t_2e7ad106fa49dc 1-86
+SECURITY.md
+  s_bb204f9a0e77ba::t_55a0b62f0296fb 1-5
+Uninstall-Jax.ps1
+  s_bb204f9a0e77ba::t_b4702c9c85704d 1-38
+VERSION
+  s_bb204f9a0e77ba::t_a5d914d56fea4f 1
+config-samples/module-reload-sample.yml
+  s_bb204f9a0e77ba::t_ea4162c3016067 1-19
+core/Jax.Core.psm1
+  s_bb204f9a0e77ba::t_e199199689d999 1-31
+core/private/Add-JaxScenarioEntities.ps1
+  s_bb204f9a0e77ba::t_5ea3ad33f43938 1-21
+core/private/Complete-JaxTerminalTitle.ps1
+  s_bb204f9a0e77ba::t_f6e15d3e2eebe7 1-60
+core/private/Confirm-JaxConfig.ps1
+  s_bb204f9a0e77ba::t_ce0d2df5e0cae8 1-216
+core/private/Convert-JaxArgsToCommandLine.ps1
+  s_bb204f9a0e77ba::t_c4bb8efed8c42d 1-26
+core/private/Convert-JaxCliListValue.ps1
+  s_bb204f9a0e77ba::t_19209d47bee964 1-21
+core/private/Convert-JaxCliSwitchValue.ps1
+  s_bb204f9a0e77ba::t_4d9ad479003b75 1-29
+core/private/Convert-JaxConfig.ps1
+  s_bb204f9a0e77ba::t_1033e7b198acf2 1-176
+core/private/Convert-JaxRunEntityName.ps1
+  s_bb204f9a0e77ba::t_557e49cb2f9420 1-24
+core/private/Convert-JaxScenarioItemToRunEntity.ps1
+  s_bb204f9a0e77ba::t_cb35e5e0089426 1-27
+core/private/Convert-JaxToJsonSafeValue.ps1
+  s_bb204f9a0e77ba::t_f1a81da3437aa7 1-44
+core/private/Expand-JaxScenarioEntity.ps1
+  s_bb204f9a0e77ba::t_5bd9220fc8f04f 1-124
+core/private/Find-JaxConfigLine.ps1
+  s_bb204f9a0e77ba::t_131c3dab4dcaf3 1-30
+core/private/Find-JaxFlowDirs.ps1
+  s_bb204f9a0e77ba::t_89f860559e66c3 1-40
+core/private/Format-JaxRunEntityLog.ps1
+  s_bb204f9a0e77ba::t_c516bfd62d85b6 1-107
+core/private/Get-JaxCommonParameters.ps1
+  s_bb204f9a0e77ba::t_8a87c038b509a5 1-19
+core/private/Get-JaxCurrentCmuxSurfaceTitle.ps1
+  s_bb204f9a0e77ba::t_4bc27d29774980 1-51
+core/private/Get-JaxDefaultConfig.ps1
+  s_bb204f9a0e77ba::t_da2f128f373ef7 1-104
+core/private/Get-JaxIncludedFiles.ps1
+  s_bb204f9a0e77ba::t_c378f3cc6539e4 1-48
+core/private/Get-JaxLibraryEntities.ps1
+  s_bb204f9a0e77ba::t_ddde1ba2059078 1-84
+core/private/Get-JaxLogDir.ps1
+  s_bb204f9a0e77ba::t_2a2e9eed494daa 1-8
+core/private/Get-JaxOnlySelectors.ps1
+  s_bb204f9a0e77ba::t_a191952de511a6 1-30
+core/private/Get-JaxPluginConfig.ps1
+  s_bb204f9a0e77ba::t_39144f8ac06438 1-14
+core/private/Get-JaxPsakeTaskDefinitions.ps1
+  s_bb204f9a0e77ba::t_4a64707db51027 1-53
+core/private/Get-JaxPsakeTaskEntities.ps1
+  s_bb204f9a0e77ba::t_de837bbcf2ff86 1-94
+core/private/Get-JaxPsakeTaskInfoByParsing.ps1
+  s_bb204f9a0e77ba::t_2fea4db8755a12 1-234
+core/private/Get-JaxRepoConfigPath.ps1
+  s_bb204f9a0e77ba::t_e43b5b4d9c3cb4 1-12
+core/private/Get-JaxRepoShortcutFilePath.ps1
+  s_bb204f9a0e77ba::t_7defeb0608ff5b 1-16
+core/private/Get-JaxRunEntityAliases.ps1
+  s_bb204f9a0e77ba::t_c6481a9a987942 1-27
+core/private/Get-JaxRunner.ps1
+  s_bb204f9a0e77ba::t_8ef1261dbe9fac 1-16
+core/private/Get-JaxScenarioResolvers.ps1
+  s_bb204f9a0e77ba::t_57049014164897 1-12
+core/private/Get-JaxScriptEntities.ps1
+  s_bb204f9a0e77ba::t_67a71ab0f97cd1 1-73
+core/private/Get-JaxScriptSearchPaths.ps1
+  s_bb204f9a0e77ba::t_396ae3aebfcc9b 1-54
+core/private/Get-JaxShortEnvToken.ps1
+  s_bb204f9a0e77ba::t_dfa3451421604b 1-52
+core/private/Get-JaxStatePath.ps1
+  s_bb204f9a0e77ba::t_7414e6afa97dad 1-8
+core/private/Get-JaxTabTitleForRun.ps1
+  s_bb204f9a0e77ba::t_bc20d0b5e621bf 1-115
+core/private/Get-JaxTaskSearchPaths.ps1
+  s_bb204f9a0e77ba::t_8e8bedd3944a25 1-43
+core/private/Get-JaxTitleSpinnerFrame.ps1
+  s_bb204f9a0e77ba::t_72b5e4f1e4c79a 1-20
+core/private/Get-JaxToolRoot.ps1
+  s_bb204f9a0e77ba::t_9684c4f21014b7 1-6
+core/private/Initialize-JaxCliParameterRegistry.ps1
+  s_bb204f9a0e77ba::t_c4543e5c412377 1-66
+core/private/Initialize-JaxHelpRegistry.ps1
+  s_bb204f9a0e77ba::t_a65317bc3da376 1-8
+core/private/Initialize-JaxPlaceholdersProvider.ps1
+  s_bb204f9a0e77ba::t_585742ea594d6c 1-17
+core/private/Initialize-JaxPluginRegistry.ps1
+  s_bb204f9a0e77ba::t_655aa1fec1de90 1-11
+core/private/Initialize-JaxPluginsLoaded.ps1
+  s_bb204f9a0e77ba::t_325b24c95bc830 1-29
+core/private/Initialize-JaxPsakeProvider.ps1
+  s_bb204f9a0e77ba::t_56681f99df1479 1-42
+core/private/Initialize-JaxRunnerRegistry.ps1
+  s_bb204f9a0e77ba::t_d92830e18ccc76 1-36
+core/private/Initialize-JaxScenarioResolverRegistry.ps1
+  s_bb204f9a0e77ba::t_3e8df69bccfd1c 1-161
+core/private/Initialize-JaxStateDefaults.ps1
+  s_bb204f9a0e77ba::t_7b7701f0e7d13e 1-34
+core/private/Initialize-JaxTerminalTitleState.ps1
+  s_bb204f9a0e77ba::t_53174b9ce384f1 1-25
+core/private/Initialize-JaxTypeExtensions.ps1
+  s_bb204f9a0e77ba::t_c0d902cbcf789e 1-25
+core/private/Initialize-JaxVariablesProvider.ps1
+  s_bb204f9a0e77ba::t_52cb40274fcf24 1-6
+core/private/Initialize-JaxYamlProvider.ps1
+  s_bb204f9a0e77ba::t_aac5b27e80b9c3 1-72
+core/private/Invoke-JaxContainerRunner.ps1
+  s_bb204f9a0e77ba::t_3af8fe009451dd 1-87
+core/private/Invoke-JaxPsakeRunner.ps1
+  s_bb204f9a0e77ba::t_05fc268c03dba8 1-258
+core/private/Invoke-JaxScenarioRunner.ps1
+  s_bb204f9a0e77ba::t_d87cbaee4ab2ef 1-14
+core/private/Invoke-JaxScriptRunner.ps1
+  s_bb204f9a0e77ba::t_555775cdb01c95 1-83
+core/private/Merge-JaxRunEntityList.ps1
+  s_bb204f9a0e77ba::t_c0f02dff933d21 1-48
+core/private/New-JaxFlowConfig.ps1
+  s_bb204f9a0e77ba::t_51abb433f1e455 1-27
+core/private/New-JaxRunEntity.ps1
+  s_bb204f9a0e77ba::t_b1085711c0dc02 1-25
+core/private/Resolve-JaxCmuxTarget.ps1
+  s_bb204f9a0e77ba::t_d50d0e4b16bfe9 1-63
+core/private/Resolve-JaxConfigSection.ps1
+  s_bb204f9a0e77ba::t_74d11bc0134725 1-15
+core/private/Resolve-JaxContainerPath.ps1
+  s_bb204f9a0e77ba::t_1d6ce015b5b107 1-22
+core/private/Resolve-JaxDefaultContainerImage.ps1
+  s_bb204f9a0e77ba::t_1248b2dd87c432 1-36
+core/private/Resolve-JaxEntityAliases.ps1
+  s_bb204f9a0e77ba::t_2a67af77235770 1-40
+core/private/Resolve-JaxRepoRootedPath.ps1
+  s_bb204f9a0e77ba::t_0eae5d327b51bd 1-31
+core/private/Resolve-JaxRunnerName.ps1
+  s_bb204f9a0e77ba::t_b8b9b853e8a713 1-35
+core/private/Resolve-JaxScriptRunnerName.ps1
+  s_bb204f9a0e77ba::t_9b4bd73a1a60bb 1-21
+core/private/Restore-JaxOriginalTerminalTitle.ps1
+  s_bb204f9a0e77ba::t_2e34b589a7c417 1-69
+core/private/Set-JaxCmuxSurfaceTitle.ps1
+  s_bb204f9a0e77ba::t_22b4308304f2a4 1-48
+core/private/Set-JaxDiscoveredEntityDefaults.ps1
+  s_bb204f9a0e77ba::t_7d3b7ec9872ef3 1-97
+core/private/Set-JaxTerminalTabTitle.ps1
+  s_bb204f9a0e77ba::t_bfd5889acb70a1 1-70
+core/private/Test-JaxDictionaryHasKey.ps1
+  s_bb204f9a0e77ba::t_2925b69313c61a 1-20
+core/private/Test-JaxIsDictionary.ps1
+  s_bb204f9a0e77ba::t_9158cb44794aed 1-15
+core/private/Test-JaxPluginEnabled.ps1
+  s_bb204f9a0e77ba::t_3d9fcd9e3ff888 1-31
+core/private/Test-JaxRunEntityNameMatch.ps1
+  s_bb204f9a0e77ba::t_8c7647acdf7ea4 1-81
+core/private/Test-JaxShouldUpdateTerminalTitle.ps1
+  s_bb204f9a0e77ba::t_da68b8a21ed99e 1-79
+core/private/Write-JaxFramedKeyValueLine.ps1
+  s_bb204f9a0e77ba::t_e28fc519f343c2 1-38
+core/private/Write-JaxKeyValueLine.ps1
+  s_bb204f9a0e77ba::t_ce72a07fd683aa 1-24
+core/private/Write-JaxRunEntityBanner.ps1
+  s_bb204f9a0e77ba::t_08ab978d65a4a2 1-91
+core/private/Write-JaxTitleDebug.ps1
+  s_bb204f9a0e77ba::t_462a2eee572b74 1-25
+core/public/Convert-JaxCliUnknownToHashtable.ps1
+  s_bb204f9a0e77ba::t_cdb5e4ce27910e 1-49
+core/public/Convert-JaxConfigForSave.ps1
+  s_bb204f9a0e77ba::t_a8e2be1fcf95a1 1-239
+core/public/Expand-JaxCliShortcut.ps1
+  s_bb204f9a0e77ba::t_f3782e04da40a2 1-38
+core/public/Expand-JaxFlowScenario.ps1
+  s_bb204f9a0e77ba::t_f0622cffb1e3c2 1-42
+core/public/Expand-JaxPlaceholders.ps1
+  s_bb204f9a0e77ba::t_51a9ff98795e54 1-30
+core/public/Expand-JaxVariables.ps1
+  s_bb204f9a0e77ba::t_d7dd08a1c2e75c 1-24
+core/public/Format-JaxPathLink.ps1
+  s_bb204f9a0e77ba::t_a99689e18de8db 1-42
+core/public/Get-JaxAutocompleteIcon.ps1
+  s_bb204f9a0e77ba::t_dee5798bb88e60 1-35
+core/public/Get-JaxBuildRunEntities.ps1
+  s_bb204f9a0e77ba::t_44191564e5c98c 1-68
+core/public/Get-JaxBuildSectionNames.ps1
+  s_bb204f9a0e77ba::t_e2f434cd6b69b5 1-42
+core/public/Get-JaxBuiltinPluginPath.ps1
+  s_bb204f9a0e77ba::t_d93decdc5927f7 1-32
+core/public/Get-JaxCliParameters.ps1
+  s_bb204f9a0e77ba::t_1da872c7d67b8d 1-8
+core/public/Get-JaxCommonParameters.ps1
+  s_bb204f9a0e77ba::t_ad08631f6f5157 1-23
+core/public/Get-JaxCompletionCommands.ps1
+  s_bb204f9a0e77ba::t_a3fa5d6229d55e 1-29
+core/public/Get-JaxCompletionFlags.ps1
+  s_bb204f9a0e77ba::t_889f040fccadce 1-15
+core/public/Get-JaxConfig.ps1
+  s_bb204f9a0e77ba::t_59103680fe9080 1-121
+core/public/Get-JaxDiscoveredRunEntities.ps1
+  s_bb204f9a0e77ba::t_87b18aa039a3c2 1-48
+core/public/Get-JaxEnvHierarchyPaths.ps1
+  s_bb204f9a0e77ba::t_4cf551902ae7e8 1-64
+core/public/Get-JaxEnvironments.ps1
+  s_bb204f9a0e77ba::t_93ede8959c7d9c 1-242
+core/public/Get-JaxFlowConfig.ps1
+  s_bb204f9a0e77ba::t_12f755072c7554 1-37
+core/public/Get-JaxHelpEntries.ps1
+  s_bb204f9a0e77ba::t_1b5680b9ad313d 1-8
+core/public/Get-JaxPlugins.ps1
+  s_bb204f9a0e77ba::t_ac165db475a562 1-7
+core/public/Get-JaxRepoRoot.ps1
+  s_bb204f9a0e77ba::t_0b4368700039f7 1-52
+core/public/Get-JaxRunEntityKey.ps1
+  s_bb204f9a0e77ba::t_71d80097c2471c 1-36
+core/public/Get-JaxRunEntityKeys.ps1
+  s_bb204f9a0e77ba::t_c9ea4f29ecf773 1-41
+core/public/Get-JaxScenarioEntityKeys.ps1
+  s_bb204f9a0e77ba::t_af22eddc8bf57f 1-29
+core/public/Get-JaxScenarioNames.ps1
+  s_bb204f9a0e77ba::t_3a78c3f7ece990 1-27
+core/public/Get-JaxScenarioRunEntities.ps1
+  s_bb204f9a0e77ba::t_e60f2819072f17 1-111
+core/public/Get-JaxSequenceKeyCandidates.ps1
+  s_bb204f9a0e77ba::t_c9469e180a1cf5 1-183
+core/public/Get-JaxShortcutArgsToSave.ps1
+  s_bb204f9a0e77ba::t_89fdbd4f857e2f 1-42
+core/public/Get-JaxState.ps1
+  s_bb204f9a0e77ba::t_6355e878767f69 1-47
+core/public/Import-JaxPlugins.ps1
+  s_bb204f9a0e77ba::t_dfc15b52e5fb54 1-58
+core/public/Invoke-JaxBeep.ps1
+  s_bb204f9a0e77ba::t_2f23615480446c 1-11
+core/public/Invoke-JaxCreateFlavour.ps1
+  s_bb204f9a0e77ba::t_c6e050abdc8c69 1-59
+core/public/Invoke-JaxCustomizationWizard.ps1
+  s_bb204f9a0e77ba::t_ae12361b9c0ba4 1-45
+core/public/Invoke-JaxEnvInit.ps1
+  s_bb204f9a0e77ba::t_fc2fac86a7db5f 1-351
+core/public/Invoke-JaxHooks.ps1
+  s_bb204f9a0e77ba::t_7014a0609da70a 1-82
+core/public/Invoke-JaxInit.ps1
+  s_bb204f9a0e77ba::t_3b4bf383b36e5b 1-149
+core/public/Invoke-JaxInitCompatConfig.ps1
+  s_bb204f9a0e77ba::t_bbcc28e371dc7b 1-45
+core/public/Invoke-JaxModulesReload.ps1
+  s_bb204f9a0e77ba::t_29b9dfb4c0ad62 1-78
+core/public/Invoke-JaxRunEntities.ps1
+  s_bb204f9a0e77ba::t_9ab9142568b71a 1-107
+core/public/Invoke-JaxRunEntity.ps1
+  s_bb204f9a0e77ba::t_3df71654e45e66 1-78
+core/public/Merge-JaxHashtable.ps1
+  s_bb204f9a0e77ba::t_d352ddadfcabf0 1-38
+core/public/New-JaxEnvironment.ps1
+  s_bb204f9a0e77ba::t_c3edd0fd31d323 1-360
+core/public/New-JaxRunEntityIndex.ps1
+  s_bb204f9a0e77ba::t_2bbc9ef7a66143 1-30
+core/public/Read-JaxPromptBool.ps1
+  s_bb204f9a0e77ba::t_0b79666fdd6733 1-36
+core/public/Read-JaxPromptList.ps1
+  s_bb204f9a0e77ba::t_911fa9a757b99c 1-38
+core/public/Read-JaxPromptMap.ps1
+  s_bb204f9a0e77ba::t_dac4d8c323c343 1-61
+core/public/Read-JaxPromptString.ps1
+  s_bb204f9a0e77ba::t_1acc76abe874c5 1-31
+core/public/Read-JaxYaml.ps1
+  s_bb204f9a0e77ba::t_638031f7437cc4 1-22
+core/public/Register-JaxCliParameter.ps1
+  s_bb204f9a0e77ba::t_ac1790aa0db747 1-30
+core/public/Register-JaxHelpEntry.ps1
+  s_bb204f9a0e77ba::t_67a343598a8128 1-26
+core/public/Register-JaxPersistentSetting.ps1
+  s_bb204f9a0e77ba::t_1ad9d1f20b5085 1-24
+core/public/Register-JaxPlugin.ps1
+  s_bb204f9a0e77ba::t_112e9fbd528a69 1-33
+core/public/Register-JaxRunner.ps1
+  s_bb204f9a0e77ba::t_4a455643d08fcc 1-19
+core/public/Register-JaxScenarioResolver.ps1
+  s_bb204f9a0e77ba::t_ccab89b52522dd 1-27
+core/public/Remove-JaxShortcutFromConfig.ps1
+  s_bb204f9a0e77ba::t_38a8616233a635 1-31
+core/public/Reset-JaxState.ps1
+  s_bb204f9a0e77ba::t_15a805949892d2 1-18
+core/public/Resolve-JaxCliArgs.ps1
+  s_bb204f9a0e77ba::t_5e262dad621770 1-89
+core/public/Resolve-JaxCliCommand.ps1
+  s_bb204f9a0e77ba::t_2c88b2950bf11a 1-155
+core/public/Resolve-JaxEnvSelection.ps1
+  s_bb204f9a0e77ba::t_cae4e625ee9230 1-46
+core/public/Resolve-JaxRunPlan.ps1
+  s_bb204f9a0e77ba::t_fb027994edc7db 1-262
+core/public/Resolve-JaxScenarioItemToRunEntity.ps1
+  s_bb204f9a0e77ba::t_ee3e2050c1148d 1-15
+core/public/Resolve-JaxSelectedEnvironment.ps1
+  s_bb204f9a0e77ba::t_e99e3c34663fe8 1-85
+core/public/Resolve-JaxSelectedFlowConfig.ps1
+  s_bb204f9a0e77ba::t_a9208acd9354f8 1-23
+core/public/Save-JaxShortcutToConfig.ps1
+  s_bb204f9a0e77ba::t_d0e9b58cacd781 1-44
+core/public/Select-JaxRunEntities.ps1
+  s_bb204f9a0e77ba::t_cd7dc6f45b2aad 1-88
+core/public/Set-JaxConsoleWriter.ps1
+  s_bb204f9a0e77ba::t_53459633cf56af 1-8
+core/public/Set-JaxContainerOverride.ps1
+  s_bb204f9a0e77ba::t_d78ca52fe81b03 1-44
+core/public/Test-JaxQuietMode.ps1
+  s_bb204f9a0e77ba::t_a64145253365dc 1-31
+core/public/Test-JaxRunEntityIsScript.ps1
+  s_bb204f9a0e77ba::t_58d5d829c98edb 1-32
+core/public/Update-JaxState.ps1
+  s_bb204f9a0e77ba::t_8a8ef9b7c9f151 1-42
+core/public/Write-JaxConsoleLine.ps1
+  s_bb204f9a0e77ba::t_e6a1bf2a9b597e 1-42
+core/public/Write-JaxLogFile.ps1
+  s_bb204f9a0e77ba::t_a3515667b642c5 1-26
+core/public/Write-JaxPlanLog.ps1
+  s_bb204f9a0e77ba::t_d37a0dc625a781 1-22
+core/public/Write-JaxPlanOutput.ps1
+  s_bb204f9a0e77ba::t_874705d191a7f7 1-82
+core/public/Write-JaxRunConfigLog.ps1
+  s_bb204f9a0e77ba::t_355a0a024a8136 1-57
+core/public/Write-JaxRunHeader.ps1
+  s_bb204f9a0e77ba::t_c2a71a77a03807 1-109
+core/public/Write-JaxShortcutFile.ps1
+  s_bb204f9a0e77ba::t_d7b8803cdef229 1-28
+core/public/Write-JaxYaml.ps1
+  s_bb204f9a0e77ba::t_5b19827334e01e 1-19
+distribution-manifest.psd1
+  s_bb204f9a0e77ba::t_047697fda6380f 1-54
+docs/CONSUMER-ONBOARDING.md
+  s_bb204f9a0e77ba::t_09c0670e64376a 1-56
+docs/PACKAGING.md
+  s_bb204f9a0e77ba::t_443133a5808c8c 1-42
+docs/POWERSHELL-CONVENTIONS.md
+  s_bb204f9a0e77ba::t_def116d34eedf2 1-63
+docs/README.md
+  s_bb204f9a0e77ba::t_1cf60c82f4db4a 1-937
+docs/WORKTREE-ISOLATION.md
+  s_bb204f9a0e77ba::t_71b6fa3e7b8389 1-39
+docs/module-reload-config.md
+  s_bb204f9a0e77ba::t_898a0aac172e06 1-86
+jax.auto-completion.ps1
+  s_bb204f9a0e77ba::t_4b8ee43a74eac2 1-1182
+jax.ps1
+  s_bb204f9a0e77ba::t_c2a45a90d2f8e5 1-1254
+jxs.ps1
+  s_bb204f9a0e77ba::t_cdaad3d0daa8c7 1-8
+plugins/bob/Jax.Plugin.Bob.psm1
+  s_bb204f9a0e77ba::t_8f284740b25e90 1-27
+plugins/bob/private/Initialize-JaxBobGitReady.ps1
+  s_bb204f9a0e77ba::t_cbe727a950aa30 1-65
+plugins/bob/private/Read-JaxBobLayerConfig.ps1
+  s_bb204f9a0e77ba::t_5ec2dece3a3188 1-24
+plugins/bob/private/Read-JaxBobPromptBool.ps1
+  s_bb204f9a0e77ba::t_71327a256531a9 1-32
+plugins/bob/private/Read-JaxBobPromptString.ps1
+  s_bb204f9a0e77ba::t_79f902e18f0921 1-27
+plugins/bob/private/Register-JaxBobScenarioResolvers.ps1
+  s_bb204f9a0e77ba::t_0c4b480a8fd8d3 1-166
+plugins/bob/private/Resolve-JaxBobFlavourFile.ps1
+  s_bb204f9a0e77ba::t_5d6e2f1f66d70b 1-60
+plugins/bob/private/Resolve-JaxBobLayerFiles.ps1
+  s_bb204f9a0e77ba::t_ba6cd10ea61c81 1-22
+plugins/bob/private/Resolve-JaxBobOverrideFiles.ps1
+  s_bb204f9a0e77ba::t_6fac560da8df18 1-53
+plugins/bob/private/Resolve-JaxBobScenarioItemRecursive.ps1
+  s_bb204f9a0e77ba::t_bdc8b84538c289 1-93
+plugins/bob/private/Resolve-JaxBobScenarioLibraryFiles.ps1
+  s_bb204f9a0e77ba::t_7a77d24b06bc78 1-42
+plugins/bob/private/Resolve-JaxBobScenarioSteps.ps1
+  s_bb204f9a0e77ba::t_d740ff68eeda8d 1-37
+plugins/bob/private/Test-JaxBobCiEnabled.ps1
+  s_bb204f9a0e77ba::t_820beeaa9d26f8 1-50
+plugins/bob/public/Get-JaxBobEnvRunConfig.ps1
+  s_bb204f9a0e77ba::t_1578db1b4ddfd5 1-44
+plugins/bob/public/Get-JaxBobLayerConfig.ps1
+  s_bb204f9a0e77ba::t_6d34bf34a1dbe4 1-83
+plugins/bob/public/Get-JaxBobPluginConfig.ps1
+  s_bb204f9a0e77ba::t_e02aa95cd0e3be 1-16
+plugins/bob/public/Get-JaxBobPluginDefaults.ps1
+  s_bb204f9a0e77ba::t_0d3160b79788f9 1-26
+plugins/bob/public/Get-JaxBobRunConfig.ps1
+  s_bb204f9a0e77ba::t_58fda6bcebcb22 1-206
+plugins/bob/public/Get-JaxBobScenarioLibrary.ps1
+  s_bb204f9a0e77ba::t_0c902db17e1f63 1-77
+plugins/bob/public/Merge-JaxRunConfigLayers.ps1
+  s_bb204f9a0e77ba::t_043c221710f578 1-33
+plugins/bob/public/Read-JaxRunConfigFile.ps1
+  s_bb204f9a0e77ba::t_0fe105d8cb865b 1-34
+plugins/bob/public/Register-JaxBobPlugin.ps1
+  s_bb204f9a0e77ba::t_d37be7245e821a 1-240
+plugins/bob/public/Resolve-JaxEnvDirFromFlowPath.ps1
+  s_bb204f9a0e77ba::t_eb2e700a07108d 1-28
+plugins/bob/public/Resolve-JaxRunConfigFile.ps1
+  s_bb204f9a0e77ba::t_e1dba4ae68638e 1-49
+plugins/bob/public/Resolve-JaxRunConfigImports.ps1
+  s_bb204f9a0e77ba::t_a1feb40401bbd8 1-123
+plugins/bob/public/Resolve-JaxRunConfigPath.ps1
+  s_bb204f9a0e77ba::t_bf7d8a9aa13a45 1-39
+plugins/cleaning/Jax.Plugin.Cleaning.psm1
+  s_bb204f9a0e77ba::t_c4fb421a6f656c 1-16
+plugins/coverage/Jax.Plugin.Coverage.psm1
+  s_bb204f9a0e77ba::t_c6c37b49e93623 1-303
+plugins/docker/Jax.Plugin.Docker.psm1
+  s_bb204f9a0e77ba::t_6b8c854dc61c78 1-319
+plugins/dotenv/Jax.Plugin.Dotenv.psm1
+  s_bb204f9a0e77ba::t_215ef19d9deb2a 1-81
+plugins/dotnet/Jax.Plugin.Dotnet.psm1
+  s_bb204f9a0e77ba::t_2fa3351a0486b8 1-5
+plugins/helm/Jax.Plugin.Helm.psm1
+  s_bb204f9a0e77ba::t_2b97bbba7eb514 1-5
+plugins/machine/Jax.Plugin.Machine.psm1
+  s_bb204f9a0e77ba::t_06ad9906210f28 1-56
+plugins/node/Jax.Plugin.Node.psm1
+  s_bb204f9a0e77ba::t_21e37a04487ed4 1-5
+plugins/packaging/Jax.Plugin.Packaging.psm1
+  s_bb204f9a0e77ba::t_5d02a3796bd39c 1-5
+plugins/publish/Jax.Plugin.Publish.psm1
+  s_bb204f9a0e77ba::t_968ec15c7d764f 1-5
+plugins/teamcity/Jax.Plugin.Teamcity.psm1
+  s_bb204f9a0e77ba::t_6086d6480dff3f 1-26
+plugins/teamcity/public/Register-JaxTeamcityPlugin.ps1
+  s_bb204f9a0e77ba::t_5d3cc8186c85ac 1-64
+plugins/terminal/Jax.Plugin.Terminal.psm1
+  s_bb204f9a0e77ba::t_99a512a62a4d84 1-26
+plugins/terminal/assets/colornames.bestof.csv
+  s_bb204f9a0e77ba::t_9754f523cfaddf 1-4507
+plugins/terminal/assets/colornames.short.csv
+  s_bb204f9a0e77ba::t_6c3e7163a63f37 1-2869
+plugins/terminal/assets/colorsnames.html.csv
+  s_bb204f9a0e77ba::t_51b5cea3e6819b 1-149
+plugins/terminal/assets/colorsnames.small.csv
+  s_bb204f9a0e77ba::t_c99e932cdf8c73 1-866
+plugins/terminal/private/Convert-ToJaxAnsiColorSequence.ps1
+  s_bb204f9a0e77ba::t_82138a8a71acab 1-17
+plugins/terminal/private/Get-JaxAnsiColor.ps1
+  s_bb204f9a0e77ba::t_685a4a7e678204 1-25
+plugins/terminal/private/Initialize-JaxTerminalColorMap.ps1
+  s_bb204f9a0e77ba::t_01e2b8f4ef33a4 1-47
+plugins/terminal/public/Register-JaxTerminalPlugin.ps1
+  s_bb204f9a0e77ba::t_af06da1dadcb95 1-21
+plugins/terminal/public/Write-JaxTerminalHostColor.ps1
+  s_bb204f9a0e77ba::t_620b82fb38abe0 1-74
+plugins/tests/Jax.Plugin.Tests.psm1
+  s_bb204f9a0e77ba::t_f2478b861cf2fc 1-5
+plugins/vault/Jax.Plugin.Vault.psd1
+  s_bb204f9a0e77ba::t_815c9d223aca3f 1-19
+plugins/vault/Jax.Plugin.Vault.psm1
+  s_bb204f9a0e77ba::t_fe2b7ae8c47c6f 1-282
+plugins/vault/private/Get-JaxVaultInjectorTokenPath.ps1
+  s_bb204f9a0e77ba::t_dedfadadf68509 1-15
+plugins/vault/private/Get-JaxVaultPluginConfig.ps1
+  s_bb204f9a0e77ba::t_9ad21d09a3727d 1-28
+plugins/vault/private/Get-JaxVaultToken.ps1
+  s_bb204f9a0e77ba::t_8b223f87e7f57b 1-77
+plugins/vault/private/Get-JaxVaultTokenPath.ps1
+  s_bb204f9a0e77ba::t_bb27d30f80827b 1-42
+plugins/vault/private/Resolve-JaxVaultSecrets.ps1
+  s_bb204f9a0e77ba::t_cc41c67c352d3c 1-184
+plugins/vault/private/Set-JaxVaultTokenPermissions.ps1
+  s_bb204f9a0e77ba::t_31f2527f8ac644 1-40
+plugins/vault/private/Update-JaxVaultRepoConfig.ps1
+  s_bb204f9a0e77ba::t_7b69b4ede1e0a8 1-238
+plugins/vault/public/Get-JaxVaultStatus.ps1
+  s_bb204f9a0e77ba::t_de8cea0ba98b5c 1-164
+plugins/vault/public/Reset-JaxVault.ps1
+  s_bb204f9a0e77ba::t_b3ba840f286bd1 1-16
+plugins/vault/public/Set-JaxVaultToken.ps1
+  s_bb204f9a0e77ba::t_4e417af7876fa0 1-246
+psake/LICENSE
+  s_bb204f9a0e77ba::t_e04ea2bbaf0105 1-21
+psake/src/en-US/psake.psm1-help.xml.old
+  s_bb204f9a0e77ba::t_550b96630502b4 1-2265
+psake/src/private/CleanupEnvironment.ps1
+  s_bb204f9a0e77ba::t_d9f170c15aa5fc 1-12
+psake/src/private/ConfigureBuildEnvironment.ps1
+  s_bb204f9a0e77ba::t_f4d728ea2124ec 1-202
+psake/src/private/CreateConfigurationForNewContext.ps1
+  s_bb204f9a0e77ba::t_7ce4b13f53fed7 1-28
+psake/src/private/ExecuteInBuildFileScope.ps1
+  s_bb204f9a0e77ba::t_01364d9c9a0723 1-58
+psake/src/private/FormatErrorMessage.ps1
+  s_bb204f9a0e77ba::t_f8f013edc968f9 1-25
+psake/src/private/Get-DefaultBuildFile.ps1
+  s_bb204f9a0e77ba::t_6433725d0fc8b1 1-17
+psake/src/private/GetCurrentConfigurationOrDefault.ps1
+  s_bb204f9a0e77ba::t_7ee380fc573ee0 1-7
+psake/src/private/GetTasksFromContext.ps1
+  s_bb204f9a0e77ba::t_9fb5e775da4c35 1-15
+psake/src/private/LoadConfiguration.ps1
+  s_bb204f9a0e77ba::t_0426b8063f5814 1-31
+psake/src/private/LoadModules.ps1
+  s_bb204f9a0e77ba::t_67ce70e7ac40d6 1-21
+psake/src/private/ResolveError.ps1
+  s_bb204f9a0e77ba::t_4df9021a33cdca 1-63
+psake/src/private/SelectObjectWithDefault.ps1
+  s_bb204f9a0e77ba::t_49a9b65ee66bb6 1-23
+psake/src/private/Test-ModuleVersion.ps1
+  s_bb204f9a0e77ba::t_be987ec1858fb2 1-107
+psake/src/private/WriteColoredOutput.ps1
+  s_bb204f9a0e77ba::t_ddd29165a77fb7 1-20
+psake/src/private/WriteDocumentation.ps1
+  s_bb204f9a0e77ba::t_22dcc5c13a2931 1-26
+psake/src/private/WriteTaskTimeSummary.ps1
+  s_bb204f9a0e77ba::t_b869a9c8d66387 1-34
+psake/src/psake
+  s_bb204f9a0e77ba::t_6096d4d8880565 1-12
+psake/src/psake-config.ps1
+  s_bb204f9a0e77ba::t_3f802eff70c553 1-22
+psake/src/psake.cmd
+  s_bb204f9a0e77ba::t_be38fa2a7a1c93 1-14
+psake/src/psake.ps1
+  s_bb204f9a0e77ba::t_f2ae79fd354db7 1-73
+psake/src/psake.psd1
+  s_bb204f9a0e77ba::t_cde388ee55c736 1-33
+psake/src/psake.psm1
+  s_bb204f9a0e77ba::t_0025879c94ce57 1-112
+psake/src/public/Assert.ps1
+  s_bb204f9a0e77ba::t_294bfc6d80c5c8 1-71
+psake/src/public/BuildSetup.ps1
+  s_bb204f9a0e77ba::t_8a8521bd80ff86 1-55
+psake/src/public/BuildTearDown.ps1
+  s_bb204f9a0e77ba::t_4a6371e8cf8b32 1-75
+psake/src/public/Exec.ps1
+  s_bb204f9a0e77ba::t_0e40d920d10d4d 1-143
+psake/src/public/FormatTaskName.ps1
+  s_bb204f9a0e77ba::t_d8030c0411a72f 1-95
+psake/src/public/Framework.ps1
+  s_bb204f9a0e77ba::t_fca203682415fb 1-55
+psake/src/public/Get-PSakeScriptTasks.ps1
+  s_bb204f9a0e77ba::t_5fa6a56bba4958 1-45
+psake/src/public/Include.ps1
+  s_bb204f9a0e77ba::t_fd65aa9e593604 1-63
+psake/src/public/Invoke-Task.ps1
+  s_bb204f9a0e77ba::t_21077d2b51df1e 1-166
+psake/src/public/Invoke-psake.ps1
+  s_bb204f9a0e77ba::t_d82a60cf37fff8 1-367
+psake/src/public/Properties.ps1
+  s_bb204f9a0e77ba::t_54e20cfde41ca5 1-61
+psake/src/public/Task.ps1
+  s_bb204f9a0e77ba::t_895a436ba94f95 1-401
+psake/src/public/TaskSetup.ps1
+  s_bb204f9a0e77ba::t_923cebeb7dccde 1-102
+psake/src/public/TaskTearDown.ps1
+  s_bb204f9a0e77ba::t_733881c855a73d 1-107
+templates/env/default/flow.yml
+  s_bb204f9a0e77ba::t_072df1247c824d 1-10
+templates/env/default/jaxfile.yml
+  s_bb204f9a0e77ba::t_242857e57c6a59 1-23
+templates/env/default/psakefile.ps1
+  s_bb204f9a0e77ba::t_9b79eb45091a99 1-15
+templates/env/default/scenario.yml
+  s_bb204f9a0e77ba::t_63fc61dd230bb0 1-9
+templates/env/default/template.yml
+  s_bb204f9a0e77ba::t_aa6a7583eac9dc 1-8
+tests/Core.NewEnvironment.Tests.ps1
+  s_bb204f9a0e77ba::t_0525109939dfeb 1-126
+tests/Invoke-Tests.ps1
+  s_bb204f9a0e77ba::t_1c6aae72d0b34c 1-23
+tests/Jax.Cli.Command.Tests.ps1
+  s_bb204f9a0e77ba::t_f355c1c7ae844e 1-79
+tests/Jax.Cli.Completion.Tests.ps1
+  s_bb204f9a0e77ba::t_4b029ec9d22f34 1-359
+tests/Jax.Cli.Discovery.Tests.ps1
+  s_bb204f9a0e77ba::t_45473e70d861c5 1-50
+tests/Jax.Cli.DynamicParams.Override.Tests.ps1
+  s_bb204f9a0e77ba::t_8149e80667ed33 1-26
+tests/Jax.Cli.EnvInit.Tests.ps1
+  s_bb204f9a0e77ba::t_76913be9e0270d 1-30
+tests/Jax.Cli.ForceReloadModules.NoNoise.Tests.ps1
+  s_bb204f9a0e77ba::t_f0b6d4cab06b69 1-25
+tests/Jax.Cli.Help.Tests.ps1
+  s_bb204f9a0e77ba::t_a369744086c7aa 1-19
+tests/Jax.Cli.Init.Tests.ps1
+  s_bb204f9a0e77ba::t_4ecfbad9d984dc 1-46
+tests/Jax.Cli.ListEnvs.Tests.ps1
+  s_bb204f9a0e77ba::t_7ca64e4f4b7f7a 1-18
+tests/Jax.Cli.Output.Tests.ps1
+  s_bb204f9a0e77ba::t_7f790207bc0fea 1-52
+tests/Jax.Cli.Params.Tests.ps1
+  s_bb204f9a0e77ba::t_409f1a0061458c 1-89
+tests/Jax.Cli.ShortcutStatePersist.Tests.ps1
+  s_bb204f9a0e77ba::t_e79eef8f6e8636 1-47
+tests/Jax.Cli.Shortcuts.Tests.ps1
+  s_bb204f9a0e77ba::t_8ab68365d1d0b0 1-330
+tests/Jax.Cli.StateFromTo.Tests.ps1
+  s_bb204f9a0e77ba::t_eb3f25ce4aea8b 1-48
+tests/Jax.Cli.VaultToggle.Tests.ps1
+  s_bb204f9a0e77ba::t_e4f105ca5302ba 1-26
+tests/Jax.Core.Build.Tests.ps1
+  s_bb204f9a0e77ba::t_bd13ecc5793ef0 1-40
+tests/Jax.Core.Config.Tests.ps1
+  s_bb204f9a0e77ba::t_0a7fff91fba251 1-148
+tests/Jax.Core.Customization.Tests.ps1
+  s_bb204f9a0e77ba::t_3130a771f00ef7 1-49
+tests/Jax.Core.DiscoveredEntities.Tests.ps1
+  s_bb204f9a0e77ba::t_1d50e98e3b7006 1-63
+tests/Jax.Core.Discovery.Tests.ps1
+  s_bb204f9a0e77ba::t_086f9c46cb163a 1-169
+tests/Jax.Core.EnvSelection.Tests.ps1
+  s_bb204f9a0e77ba::t_86d54ea613b1b4 1-70
+tests/Jax.Core.LibraryFallback.Tests.ps1
+  s_bb204f9a0e77ba::t_17ca096039c577 1-82
+tests/Jax.Core.ModulesReload.Tests.ps1
+  s_bb204f9a0e77ba::t_9c2ed1ce9ac38b 1-98
+tests/Jax.Core.Placeholders.Tests.ps1
+  s_bb204f9a0e77ba::t_056fc1db9865e5 1-105
+tests/Jax.Core.PlanOutput.Tests.ps1
+  s_bb204f9a0e77ba::t_b6737a4b942715 1-50
+tests/Jax.Core.Plugins.Tests.ps1
+  s_bb204f9a0e77ba::t_2ee034c31af5ab 1-62
+tests/Jax.Core.PsakeParsing.Tests.ps1
+  s_bb204f9a0e77ba::t_ebe677f10c013c 1-33
+tests/Jax.Core.RepoRoot.Tests.ps1
+  s_bb204f9a0e77ba::t_9145d4cce36915 1-63
+tests/Jax.Core.RunEntityKeys.Tests.ps1
+  s_bb204f9a0e77ba::t_a51257f32cb06a 1-22
+tests/Jax.Core.Runner.Tests.ps1
+  s_bb204f9a0e77ba::t_6792eeec7dcd50 1-195
+tests/Jax.Core.ScenarioRunner.Tests.ps1
+  s_bb204f9a0e77ba::t_ec85a09ecac87c 1-208
+tests/Jax.Core.Scenarios.Tests.ps1
+  s_bb204f9a0e77ba::t_7b3e3803db0527 1-93
+tests/Jax.Core.Selection.Tests.ps1
+  s_bb204f9a0e77ba::t_6a7db370f2ce56 1-188
+tests/Jax.Core.SequenceKeyCandidates.Tests.ps1
+  s_bb204f9a0e77ba::t_96a805e9732786 1-24
+tests/Jax.Core.State.Tests.ps1
+  s_bb204f9a0e77ba::t_11925a1462b831 1-42
+tests/Jax.Core.TabTitle.Tests.ps1
+  s_bb204f9a0e77ba::t_268ad6287aa609 1-158
+tests/Jax.Integration.JaxClient.Tests.ps1
+  s_bb204f9a0e77ba::t_a66fe8149166e3 1-75
+tests/Jax.Packaging.Tests.ps1
+  s_bb204f9a0e77ba::t_57056e41822a9a 1-92
+tests/Jax.Plugin.Bob.Library.Tests.ps1
+  s_bb204f9a0e77ba::t_ecf66732f44b3f 1-192
+tests/Jax.Plugin.Bob.RunConfigLogging.Tests.ps1
+  s_bb204f9a0e77ba::t_d90425ae730e80 1-101
+tests/Jax.Plugin.Bob.Tests.ps1
+  s_bb204f9a0e77ba::t_d1cee672455746 1-485
+tests/Jax.Plugin.Cleaning.Tests.ps1
+  s_bb204f9a0e77ba::t_93745aec3a4c56 1-57
+tests/Jax.Plugin.Docker.Tests.ps1
+  s_bb204f9a0e77ba::t_52f2f46a3d3a9d 1-225
+tests/Jax.Plugin.Vault.Tests.ps1
+  s_bb204f9a0e77ba::t_6c4407e19b49af 1-477
+tests/Test-PublicSource.ps1
+  s_bb204f9a0e77ba::t_696925a269b8d6 1-53
+tests/fixtures/jax-client/configs/jax_client/base.yml
+  s_bb204f9a0e77ba::t_aa8c3a9d0992b2 1-6
+tests/fixtures/jax-client/env/common/psakefile.ps1
+  s_bb204f9a0e77ba::t_13a7acf1fbad95 1-11
+tests/fixtures/jax-client/env/common/scenarios-lib/common.yml
+  s_bb204f9a0e77ba::t_059d4b78fb3a28 1-6
+tests/fixtures/jax-client/env/common/scripts/common-script.ps1
+  s_bb204f9a0e77ba::t_042fbd29ea08c8 1
+tests/fixtures/jax-client/env/jax_client/common/psakefile.ps1
+  s_bb204f9a0e77ba::t_53d990d90a542b 1-3
+tests/fixtures/jax-client/env/jax_client/common/scenarios-lib/common.yml
+  s_bb204f9a0e77ba::t_637326c9a8d7b3 1-3
+tests/fixtures/jax-client/env/jax_client/dev/flows/build.yml
+  s_bb204f9a0e77ba::t_fd70b96f94b6a5 1-43
+tests/fixtures/jax-client/env/jax_client/dev/jaxfile.yml
+  s_bb204f9a0e77ba::t_31cd3887da0ccc 1-6
+tests/fixtures/jax-client/env/jax_client/dev/psakefile.ps1
+  s_bb204f9a0e77ba::t_a4406a68b0264c 1-23
+tests/fixtures/jax-client/env/jax_client/dev/scenarios-lib/dev.yml
+  s_bb204f9a0e77ba::t_6ffa8643aa11af 1-3
+tests/fixtures/jax-client/env/jax_client/dev/scripts/dev-script.sh
+  s_bb204f9a0e77ba::t_994436173ec8d1 1-2
+tests/fixtures/jax-client/env/jax_client/dev/scripts/test-script.ps1
+  s_bb204f9a0e77ba::t_ebf0ef5da95b81 1-6
+tests/fixtures/jax-client/env/jax_client/prod/flows/build.yml
+  s_bb204f9a0e77ba::t_ef2c795653d830 1-10
+tests/fixtures/jax-client/env/jax_client/prod/jaxfile.yml
+  s_bb204f9a0e77ba::t_4045c212dff4d2 1-4
+tests/fixtures/jax-client/env/jax_client/prod/psakefile.ps1
+  s_bb204f9a0e77ba::t_e99a9bf8049b16 1-7
+tests/fixtures/jax-client/env/jax_client/prod/scripts/prod-script.ps1
+  s_bb204f9a0e77ba::t_b6e88be2734366 1
+tests/fixtures/jax-client/jax.config.yml
+  s_bb204f9a0e77ba::t_19db9d679e7de5 1-20
+tests/manual/psakefile.ps1
+  s_bb204f9a0e77ba::t_b34496e1c76926 1-13
+tests/manual/test-script.ps1
+  s_bb204f9a0e77ba::t_a5bf5174f6d3a9 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "ff0b5c67c997a7cdf16879c0c0e487c10cbd381a",
+  "prompts": {},
+  "sessions": {
+    "s_bb204f9a0e77ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6f5c-02da-7f32-92cb-ff2b05fa3ff3",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
