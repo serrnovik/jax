@@ -193,8 +193,10 @@ Describe 'Standalone Jax packaging' {
     It 'exposes the jax command from the installed module' {
         Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
         $jaxCommand = Get-Command jax -ErrorAction Stop
+        $jxCommand = Get-Command jx -ErrorAction Stop
         $jaxCommand.CommandType | Should -Be 'Alias'
         $jaxCommand.Definition | Should -Be (Join-Path $script:installRoot 'jax.ps1')
+        $jxCommand.Definition | Should -Be 'jax'
         $jaxCommand.Parameters.Keys | Should -Contain 'env'
     }
 
@@ -222,14 +224,16 @@ Describe 'Standalone Jax packaging' {
         $runOutput | Should -Match 'Build task'
     }
 
-    It 'completes environments through the installed jax alias' {
+    It 'completes environments through the installed jax and jx aliases' {
         Register-JaxCompletion
         $previousRepoRoot = $env:JAX_REPO_ROOT
         $env:JAX_REPO_ROOT = $script:consumerRoot
         try {
-            $completion = TabExpansion2 -InputScript 'jax -e ' -CursorColumn 7
-            @($completion.CompletionMatches | ForEach-Object CompletionText) |
-                Should -Contain 'sample/dev/build'
+            foreach ($input in @('jax -e ', 'jx -e ')) {
+                $completion = TabExpansion2 -InputScript $input -CursorColumn $input.Length
+                @($completion.CompletionMatches | ForEach-Object CompletionText) |
+                    Should -Contain 'sample/dev/build'
+            }
         } finally {
             if ($null -ne $previousRepoRoot) {
                 $env:JAX_REPO_ROOT = $previousRepoRoot

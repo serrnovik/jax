@@ -244,7 +244,10 @@ function Register-JaxCompletion {
 # static and dynamic parameters. A function wrapper hides parameters such as
 # -env/-e from TabExpansion2 and makes it fall back to filesystem completion.
 Set-Alias -Name jax -Value $script:JaxLauncher
-Set-Alias -Name jx -Value $script:JaxLauncher
+# Point the short alias at `jax` instead of directly at the script. PowerShell
+# then resolves completion through the canonical command name as well as
+# forwarding execution to the same launcher.
+Set-Alias -Name jx -Value jax
 Set-Alias -Name jxs -Value $script:JaxShortcutLauncher
 
 Export-ModuleMember -Function Get-JaxUpdateStatus, Install-JaxShellIntegration, Invoke-Jax, Invoke-JaxShortcut, Register-JaxCompletion -Alias jax, jx, jxs
