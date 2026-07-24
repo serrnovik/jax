@@ -1,0 +1,19 @@
+# JAX Module Reload Configuration Example
+#
+# This file demonstrates how to configure module reload exclusions.
+# Copy this to .jax/jax.config.yml to use it.
+
+# Module reload configuration
+moduleReload:
+  # Patterns (relative to repo root) of module paths to exclude from force reload.
+  # Use this to exclude modules that cause compilation errors or other issues when reloaded.
+  excludePathPatterns:
+    # Exclude all modules in the .build submodule (default)
+    - '.build/**/*.psm1'
+
+    # Example: Exclude specific problematic modules
+    # - 'devops/ps/tools/toolsClasses.psm1'
+    # - '.build/ps/compiled/compiledClasses.psm1'
+
+    # Example: Exclude all modules in vendor directories
+    # - '**/vendor/**/*.psm1'

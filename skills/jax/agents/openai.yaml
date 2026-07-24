@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jax"
+  short_description: "Initialize and run Jax-enabled repositories"
+  default_prompt: "Use $jax to install Jax support and initialize this repository."

@@ -1,0 +1,6 @@
+import:
+  - "^/configs/jax_client/base.yml"
+module:
+  name: jax_client_dev
+  version:
+    base: "1.0"

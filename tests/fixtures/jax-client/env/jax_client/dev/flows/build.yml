@@ -1,0 +1,43 @@
+suite:
+  build:
+    - CommonBuild
+    - DevOnly
+  library:
+    lib_override:
+      runner: psake
+      task: Info
+  scenarios:
+    default:
+      lib_common:
+      lib_override:
+      deploy:
+        runner: psake
+        task: Deploy
+      dev_script:
+        script: scripts/dev-script.sh
+      test_step_1:
+        runner: psake
+        task: TestStep1
+        args:
+          stepName: step1
+          myData: root-value-passed-down
+      test_step_2:
+        runner: pwsh
+        script: scripts/test-script.ps1
+        args:
+          stepName: step2
+          myData: root-value-passed-down
+      test_step_3:
+        runner: psake
+        task: TestStep3
+        args:
+          stepName: step3
+          myData: root-value-passed-down
+      test_batch:
+        runner: sceny
+        args:
+          myData: root-value-passed-down
+        steps:
+          - test_step_1
+          - test_step_2
+          - test_step_3

@@ -1,0 +1,6 @@
+lib_common:
+  runner: psake
+  task: CommonBuild
+lib_override:
+  runner: psake
+  task: CommonInfo

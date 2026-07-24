@@ -1,0 +1,6 @@
+module:
+  name: jax_client_base
+  data:
+    root: "/data/jax"
+container:
+  image: "jax/client:base"

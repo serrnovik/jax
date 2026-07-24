@@ -1,0 +1,53 @@
+{
+  "flows": {
+    "suite": {
+      "client": "demo",
+      "env_type": "dev",
+      "env": "{{ flows.suite.client }}/{{ flows.suite.env_type }}",
+      "features": {
+        "publish": {
+          "alpha": {
+            "framework": "net8.0"
+          },
+          "beta": {
+            "framework": "net8.0"
+          }
+        },
+        "pack": {
+          "alpha": {
+            "framework": "{{ flows.suite.features.publish.alpha.framework }}"
+          },
+          "beta": {
+            "framework": "{{ flows.suite.features.publish.beta.framework }}"
+          },
+          "gamma": {
+            "framework": "{{ flows.suite.features.publish.beta.framework }}"
+          }
+        },
+        "build": {
+          "common": {
+            "framework": "net8.0"
+          },
+          "targetFrameworks": {
+            "Library": "{{ flows.suite.features.build.common.framework }}",
+            "Test": "{{ flows.suite.features.build.common.framework }}",
+            "AspNet": "{{ flows.suite.features.build.common.framework }}",
+            "Executable": "{{ flows.suite.features.build.common.framework }}"
+          }
+        },
+        "run": {
+          "alpha": {
+            "framework": "{{ flows.suite.features.publish.alpha.framework }}"
+          },
+          "beta": {
+            "framework": "{{ flows.suite.features.publish.beta.framework }}"
+          }
+        }
+      },
+      "version": {
+        "base": "1.2",
+        "number": "{{ flows.suite.version.base }}.{{ env.ci.build.counter }}"
+      }
+    }
+  }
+}

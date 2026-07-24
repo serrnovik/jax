@@ -1,0 +1,188 @@
+[CmdletBinding()]
+param (
+    [string] $InstallRoot = (Join-Path $HOME '.jax/module'),
+    [switch] $SkipProfile,
+    [string] $ProfilePath = $PROFILE.CurrentUserAllHosts
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$sourceRoot = [IO.Path]::GetFullPath($PSScriptRoot)
+$installRootResolved = [IO.Path]::GetFullPath($InstallRoot)
+$pathRoot = [IO.Path]::GetFullPath([IO.Path]::GetPathRoot($installRootResolved))
+$homeRoot = [IO.Path]::GetFullPath($HOME)
+$jaxHome = [IO.Path]::GetFullPath((Join-Path $HOME '.jax'))
+$protectedRoots = @($pathRoot, $homeRoot, $jaxHome)
+if ($protectedRoots -contains $installRootResolved) {
+    throw "Refusing unsafe install root: $installRootResolved"
+}
+$sourcePrefix = $sourceRoot.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+$installPrefix = $installRootResolved.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+if ($sourcePrefix.StartsWith($installPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Refusing to install over a parent of the source checkout: $installRootResolved"
+}
+if ($sourceRoot -eq $installRootResolved) {
+    throw 'Run Install-Jax.ps1 from a source checkout, not from the installed module directory.'
+}
+if (-not $SkipProfile) {
+    if ([string]::IsNullOrWhiteSpace($ProfilePath)) {
+        throw 'PowerShell profile path cannot be empty unless -SkipProfile is supplied.'
+    }
+    $ProfilePath = [IO.Path]::GetFullPath($ProfilePath)
+    if (Test-Path -LiteralPath $ProfilePath -PathType Container) {
+        throw "PowerShell profile path points to a directory: $ProfilePath"
+    }
+}
+
+$manifestPath = Join-Path $sourceRoot 'distribution-manifest.psd1'
+$manifest = Import-PowerShellDataFile -LiteralPath $manifestPath
+if ([string]::IsNullOrWhiteSpace([string]$manifest.Version)) {
+    throw "Distribution manifest '$manifestPath' has no version."
+}
+
+$requiredYamlVersion = [version]'0.4.12'
+$yamlModule = Get-Module -ListAvailable -Name powershell-yaml -ErrorAction SilentlyContinue |
+    Where-Object { $_.Version -eq $requiredYamlVersion } |
+    Select-Object -First 1
+if ($null -eq $yamlModule) {
+    $installModuleCommand = Get-Command -Name Install-Module -ErrorAction SilentlyContinue
+    if ($null -eq $installModuleCommand) {
+        throw @"
+Jax requires powershell-yaml $requiredYamlVersion, but Install-Module is unavailable.
+Install that dependency from a trusted PowerShell repository, then run this installer again.
+"@
+    }
+
+    Write-Host "Installing dependency powershell-yaml $requiredYamlVersion for CurrentUser..." -ForegroundColor Cyan
+    Install-Module -Name powershell-yaml -Repository PSGallery -Scope CurrentUser `
+        -RequiredVersion $requiredYamlVersion -Force -AllowClobber -ErrorAction Stop
+}
+
+$sourceCommit = 'unknown'
+if (Get-Command -Name git -ErrorAction SilentlyContinue) {
+    try {
+        $resolvedCommit = & git -C $sourceRoot rev-parse HEAD 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($resolvedCommit)) {
+            $sourceCommit = $resolvedCommit.Trim()
+        }
+    } catch {
+    }
+}
+
+$installParent = Split-Path -Parent $installRootResolved
+if (-not (Test-Path -LiteralPath $installParent -PathType Container)) {
+    New-Item -ItemType Directory -Path $installParent -Force | Out-Null
+}
+if (Test-Path -LiteralPath $installRootResolved) {
+    $requiredInstallMarkers = @('Jax.psd1', 'Jax.psm1', 'INSTALLATION.json')
+    $missingInstallMarkers = @($requiredInstallMarkers | Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $installRootResolved $_) -PathType Leaf)
+    })
+    if ($missingInstallMarkers.Count -gt 0) {
+        throw "Refusing to replace a directory that is not an installed Jax module: $installRootResolved"
+    }
+}
+
+$stagingRoot = Join-Path $installParent ('.jax-staging-{0}' -f [guid]::NewGuid().ToString('N'))
+$backupRoot = Join-Path $installParent ('.jax-backup-{0}' -f [guid]::NewGuid().ToString('N'))
+
+function Copy-JaxManifestEntry {
+    param (
+        [Parameter(Mandatory = $true)] [string] $Source,
+        [Parameter(Mandatory = $true)] [string] $Destination
+    )
+
+    if (-not (Test-Path -LiteralPath $Source)) {
+        throw "Distribution manifest entry is missing: $Source"
+    }
+    $destinationParent = Split-Path -Parent $Destination
+    if (-not (Test-Path -LiteralPath $destinationParent -PathType Container)) {
+        New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+    }
+    Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
+}
+
+try {
+    New-Item -ItemType Directory -Path $stagingRoot -Force | Out-Null
+    foreach ($file in @($manifest.Files)) {
+        Copy-JaxManifestEntry -Source (Join-Path $sourceRoot $file) -Destination (Join-Path $stagingRoot $file)
+    }
+    foreach ($directory in @($manifest.Directories)) {
+        Copy-JaxManifestEntry -Source (Join-Path $sourceRoot $directory) -Destination (Join-Path $stagingRoot $directory)
+    }
+    foreach ($set in @($manifest.DirectorySets)) {
+        $targetRoot = Join-Path $stagingRoot ([string]$set.Target)
+        New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
+        foreach ($entry in @($set.Entries)) {
+            $relative = Join-Path ([string]$set.Target) ([string]$entry)
+            Copy-JaxManifestEntry -Source (Join-Path $sourceRoot $relative) -Destination (Join-Path $stagingRoot $relative)
+        }
+    }
+
+    [ordered]@{
+        Version       = [string]$manifest.Version
+        SourceCommit  = $sourceCommit
+        InstalledAtUtc = [DateTime]::UtcNow.ToString('O')
+    } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $stagingRoot 'INSTALLATION.json') -Encoding utf8
+
+    Test-ModuleManifest -Path (Join-Path $stagingRoot 'Jax.psd1') -ErrorAction Stop | Out-Null
+
+    if (Test-Path -LiteralPath $installRootResolved) {
+        Move-Item -LiteralPath $installRootResolved -Destination $backupRoot
+    }
+    Move-Item -LiteralPath $stagingRoot -Destination $installRootResolved
+    if (Test-Path -LiteralPath $backupRoot) {
+        Remove-Item -LiteralPath $backupRoot -Recurse -Force
+    }
+} catch {
+    if (Test-Path -LiteralPath $stagingRoot) {
+        Remove-Item -LiteralPath $stagingRoot -Recurse -Force
+    }
+    if ((Test-Path -LiteralPath $backupRoot) -and -not (Test-Path -LiteralPath $installRootResolved)) {
+        Move-Item -LiteralPath $backupRoot -Destination $installRootResolved
+    }
+    throw
+}
+
+if (-not $SkipProfile) {
+    $profileDir = Split-Path -Parent $ProfilePath
+    if (-not (Test-Path -LiteralPath $profileDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+    }
+    $existing = if (Test-Path -LiteralPath $ProfilePath -PathType Leaf) {
+        Get-Content -LiteralPath $ProfilePath -Raw
+    } else {
+        ''
+    }
+    $beginMarker = '# >>> jax CLI >>>'
+    $endMarker = '# <<< jax CLI <<<'
+    $pattern = '(?ms)^' + [regex]::Escape($beginMarker) + '.*?^' + [regex]::Escape($endMarker) + '\r?\n?'
+    $withoutOldBlock = [regex]::Replace($existing, $pattern, '').TrimEnd()
+    $escapedModulePath = (Join-Path $installRootResolved 'Jax.psd1').Replace("'", "''")
+    $block = @"
+$beginMarker
+`$jaxModulePath = '$escapedModulePath'
+if (Test-Path -LiteralPath `$jaxModulePath) {
+    Import-Module `$jaxModulePath -Global -Force -DisableNameChecking
+}
+$endMarker
+"@
+    $profileContent = if ([string]::IsNullOrWhiteSpace($withoutOldBlock)) { $block } else { "$withoutOldBlock`n`n$block" }
+    Set-Content -LiteralPath $ProfilePath -Value $profileContent -Encoding utf8
+}
+
+Write-Host ("Jax {0} installed to {1}" -f $manifest.Version, $installRootResolved) -ForegroundColor Green
+$installedManifest = Join-Path $installRootResolved 'Jax.psd1'
+$escapedInstalledManifest = $installedManifest.Replace("'", "''")
+$activateCommand = "Import-Module '$escapedInstalledManifest' -Global -Force -DisableNameChecking"
+if ($SkipProfile) {
+    Write-Host "Import with: $activateCommand" -ForegroundColor DarkGray
+} else {
+    Write-Host 'Open a new PowerShell session, or activate Jax now in your current PowerShell session:' -ForegroundColor DarkGray
+    Write-Host "  $activateCommand" -ForegroundColor DarkGray
+}
+if (-not $IsWindows -and [IO.Path]::GetFileName([string]$env:SHELL) -in @('zsh', 'bash')) {
+    Write-Host 'To enable Jax in zsh/bash after activation:' -ForegroundColor DarkGray
+    Write-Host '  Install-JaxShellIntegration' -ForegroundColor DarkGray
+}

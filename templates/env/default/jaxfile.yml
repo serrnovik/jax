@@ -1,0 +1,23 @@
+# JAX Environment Configuration
+# This file defines environment-specific settings.
+---
+variables:
+  # Add your environment variables here
+  # ENV_NAME: "{{EnvName}}"
+
+boss:
+  suite:
+    name: '{{EnvName}}'
+    env: '{{EnvName}}'
+    env_type: 'local'
+    version:
+      number: '0.1'
+      postfix: ''
+  featuredTask: 'EnvInfo'
+
+# Plugin configuration overrides
+plugins:
+  config:
+    # Example: Override vault settings for this environment
+    # vault:
+    #   enabled: true

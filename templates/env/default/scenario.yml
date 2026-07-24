@@ -1,0 +1,9 @@
+# Example Scenario Definition
+# stored in scenarios-lib/
+# Scenarios define complex workflows or parameter sets.
+
+# name: example-scenario
+# description: "An example scenario"
+# flow: {{FlowName}}
+# args:
+#   some_param: value

@@ -1,0 +1,3 @@
+lib_override:
+  runner: psake
+  task: DevOnly

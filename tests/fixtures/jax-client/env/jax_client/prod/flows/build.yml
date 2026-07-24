@@ -1,0 +1,10 @@
+suite:
+  build:
+    - CommonBuild
+  scenarios:
+    default:
+      deploy:
+        runner: psake
+        task: Deploy
+      prod_script:
+        script: scripts/prod-script.ps1

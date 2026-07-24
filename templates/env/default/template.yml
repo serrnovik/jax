@@ -1,0 +1,8 @@
+# Template Definition for default
+# This file defines template metadata used during environment scaffolding.
+
+name: default
+description: Basic repository-independent environment scaffold
+featuredTask: EnvInfo
+# Future extensible settings:
+# requiredPlugins: []

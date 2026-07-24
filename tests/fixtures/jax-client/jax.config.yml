@@ -1,0 +1,20 @@
+jax:
+  envRoot: env
+  flowDirNames:
+    - flows
+  flowFilePatterns:
+    - "*.yml"
+    - "*.yaml"
+  tasks:
+    psakeFilePattern: "psakefile*.ps1"
+    nonConventionalDirs: []
+  scripts:
+    dirNames:
+      - scripts
+    nonConventionalDirs: []
+  scenarioLibDirName: "scenarios-lib"
+  taskIgnoreList: []
+  aliases: {}
+  cache:
+    enabled: false
+    dir: ".jax/cache"

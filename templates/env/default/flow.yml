@@ -1,0 +1,10 @@
+# Default Flow Definition
+# This flow runs a sequence of tasks.
+
+name: '{{FlowName}}'
+description: 'Default flow for {{EnvName}}'
+
+# Tasks to execute
+tasks:
+  - task: Info
+    description: 'Print environment information'
