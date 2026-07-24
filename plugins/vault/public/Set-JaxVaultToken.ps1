@@ -85,36 +85,42 @@ function Set-JaxVaultToken {
         }
     }
 
-    # Config is source of truth: ask policy once (when missing) and save it.
+    # Child-token minting is opt-in through repository configuration. A normal
+    # GitHub login token already carries the policies assigned by Vault.
     $policy = $null
     if ($configHasPolicy) {
         $policy = $vaultCfg['policy']
     }
-    if (-not $configHasPolicy) {
-        $policy = Read-JaxPromptString -Prompt 'Vault policy name (optional; blank keeps the login token)' -Default ''
-    }
 
     # Config is source of truth: token TTL for optional child-token creation.
     $tokenTtl = $null
-    if ($configHasTokenTtl) {
+    if ($configHasPolicy -and $configHasTokenTtl) {
         $tokenTtl = [string]$vaultCfg['tokenTtl']
     }
 
     $shouldUpdateTokenTtl = $false
-    if ($configHasTokenTtl) {
-        $ttlPrompt = "Change Vault token TTL? (current: $tokenTtl)"
+    if ($configHasPolicy -and $configHasTokenTtl) {
+        $ttlDisplay = Format-JaxVaultDuration -Duration $tokenTtl
+        $ttlPrompt = if ($ttlDisplay -eq $tokenTtl) {
+            "Change Vault token TTL? (current: $tokenTtl)"
+        } else {
+            "Change Vault token TTL? (current: $ttlDisplay / $tokenTtl)"
+        }
         $shouldUpdateTokenTtl = Read-JaxPromptBool -Prompt $ttlPrompt -Default $false
     }
-    if ((-not $configHasTokenTtl) -or $shouldUpdateTokenTtl) {
+    if ($configHasPolicy -and ((-not $configHasTokenTtl) -or $shouldUpdateTokenTtl)) {
         $ttlDefault = if ($configHasTokenTtl) { $tokenTtl } else { '8h' }
         $tokenTtl = Read-JaxPromptString -Prompt 'Vault token TTL (hours number or duration like 6h, 30m)' -Default $ttlDefault
         if ([string]::IsNullOrWhiteSpace($tokenTtl)) {
             $tokenTtl = $ttlDefault
         }
     }
-    $tokenTtl = ConvertTo-JaxVaultTokenTtlValue $tokenTtl
+    if ($configHasPolicy) {
+        $tokenTtl = ConvertTo-JaxVaultTokenTtlValue $tokenTtl
+    }
 
-    if ((-not $configHasAddress) -or (-not $configHasTokenDir) -or (-not $configHasPolicy) -or (-not $configHasTokenTtl) -or $shouldUpdateTokenTtl) {
+    if ((-not $configHasAddress) -or (-not $configHasTokenDir) -or
+        ($configHasPolicy -and ((-not $configHasTokenTtl) -or $shouldUpdateTokenTtl))) {
         Update-JaxVaultRepoConfig -RepoRoot $repoRoot -VaultAddress $VaultAddress -TokenDir $tokenDir -Policy $policy -TokenTtl $tokenTtl @commonParams | Out-Null
         # Reload config so downstream path resolution uses the updated config.
         $config = Get-JaxConfig -RepoRoot $repoRoot @commonParams
@@ -158,16 +164,23 @@ function Set-JaxVaultToken {
                 return
             }
 
-            # Send the GitHub token over stdin so it is not exposed in the
-            # Vault process argument list. The configured mount supports
-            # non-default paths such as auth/github-production.
-            $json = $ghToken | vault write -format=json "auth/$authMount/login" 'token=-' 2>$null
-            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) {
-                Write-Error "Vault login with GitHub failed at auth/$authMount."
+            $vaultCommand = Get-Command vault -CommandType Application -ErrorAction Stop
+            $loginResult = Invoke-JaxNativeCommandWithStandardInput `
+                -FilePath $vaultCommand.Source `
+                -Arguments @('write', '-format=json', "auth/$authMount/login", 'token=-') `
+                -StandardInput $ghToken.Trim()
+
+            if ($loginResult.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($loginResult.StdOut)) {
+                $details = ([string]$loginResult.StdErr).Replace($ghToken, '[REDACTED]').Trim()
+                if ([string]::IsNullOrWhiteSpace($details)) {
+                    Write-Error "Vault login with GitHub failed at auth/$authMount (exit: $($loginResult.ExitCode))."
+                } else {
+                    Write-Error "Vault login with GitHub failed at auth/$authMount (exit: $($loginResult.ExitCode)). Vault said: $details"
+                }
                 return
             }
 
-            $loginData = $json | ConvertFrom-Json
+            $loginData = $loginResult.StdOut | ConvertFrom-Json
             $VaultToken = $loginData.auth.client_token
             Write-Host "Successfully authenticated with Vault via GitHub." -ForegroundColor Green
 
@@ -197,20 +210,28 @@ function Set-JaxVaultToken {
 
         $env:VAULT_TOKEN = $VaultToken
 
-        # Capture stderr so we can explain failures (do not swallow Vault errors).
-        # Use an explicit args array to avoid any accidental literal `$tokenTtl` being passed through.
-        $ttlArg = "-ttl=$tokenTtl"
+        # Create an orphan so the saved repository token remains valid after
+        # the short-lived interactive login token expires.
         $formatArg = '-format=json'
-        $policyArg = "-policy=$policy"
-        $tokenCreateOutput = & vault token create $ttlArg $formatArg $policyArg 2>&1
-        $tokenCreateExitCode = $LASTEXITCODE
+        $vaultCommand = Get-Command vault -CommandType Application -ErrorAction Stop
+        $tokenCreateResult = Invoke-JaxNativeCommandWithStandardInput `
+            -FilePath $vaultCommand.Source `
+            -Arguments @('write', $formatArg, 'auth/token/create-orphan', "ttl=$tokenTtl", "policies=$policy") `
+            -StandardInput ''
+        $tokenCreateOutput = $tokenCreateResult.StdOut
+        $tokenCreateExitCode = $tokenCreateResult.ExitCode
 
         if ($tokenCreateExitCode -eq 0 -and $tokenCreateOutput) {
             try {
                 $tokenData = $tokenCreateOutput | ConvertFrom-Json -ErrorAction Stop
                 if ($tokenData -and $tokenData.auth -and $tokenData.auth.client_token) {
                     $VaultToken = [string]$tokenData.auth.client_token
-                    Write-Host "Created token with TTL '$tokenTtl' and policy '$policy'." -ForegroundColor Green
+                    $tokenTtlDisplay = if ($tokenData.auth.lease_duration) {
+                        Format-JaxVaultDuration -Seconds ([double]$tokenData.auth.lease_duration)
+                    } else {
+                        Format-JaxVaultDuration -Duration $tokenTtl
+                    }
+                    Write-Host "Created token with TTL '$tokenTtlDisplay' and policy '$policy'." -ForegroundColor Green
                 } else {
                     Write-Warning "Vault token create succeeded but returned no token; keeping current login token."
                 }
@@ -219,13 +240,17 @@ function Set-JaxVaultToken {
             }
         } else {
             $details = $null
-            if ($tokenCreateOutput) {
+            if (-not [string]::IsNullOrWhiteSpace($tokenCreateResult.StdErr)) {
+                $details = ([string]$tokenCreateResult.StdErr).Trim()
+            } elseif ($tokenCreateOutput) {
                 $details = ([string]$tokenCreateOutput).Trim()
             }
             if ([string]::IsNullOrWhiteSpace($details)) {
-                Write-Warning "Vault token create failed for policy '$policy' (ttl: '$tokenTtl', exit: $tokenCreateExitCode); keeping current login token."
+                $tokenTtlDisplay = Format-JaxVaultDuration -Duration $tokenTtl
+                Write-Warning "Vault token create failed for policy '$policy' (ttl: '$tokenTtlDisplay', exit: $tokenCreateExitCode); keeping current login token."
             } else {
-                Write-Warning "Vault token create failed for policy '$policy' (ttl: '$tokenTtl', exit: $tokenCreateExitCode). Vault said: $details"
+                $tokenTtlDisplay = Format-JaxVaultDuration -Duration $tokenTtl
+                Write-Warning "Vault token create failed for policy '$policy' (ttl: '$tokenTtlDisplay', exit: $tokenCreateExitCode). Vault said: $details"
             }
 
             # Restore the login token explicitly (defensive) and continue.

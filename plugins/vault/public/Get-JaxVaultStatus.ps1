@@ -92,19 +92,21 @@ function Get-JaxVaultStatus {
             if ($null -ne $ttlSeconds) {
                 Write-Host ("TTL (seconds): {0}" -f $ttlSeconds)
                 try {
-                    $ttlSpan = [TimeSpan]::FromSeconds([double]$ttlSeconds)
-                    $ttlDays = [int][Math]::Floor($ttlSpan.TotalDays)
-                    $ttlHours = $ttlSpan.Hours
-                    $ttlMinutes = $ttlSpan.Minutes
-                    $ttlSecondsInt = $ttlSpan.Seconds
-                    if ($ttlDays -gt 0) {
-                        Write-Host ("TTL: {0}d {1}h {2}m {3}s" -f $ttlDays, $ttlHours, $ttlMinutes, $ttlSecondsInt)
-                    } else {
-                        Write-Host ("TTL: {0}h {1}m {2}s" -f ([int]$ttlSpan.TotalHours), $ttlMinutes, $ttlSecondsInt)
-                    }
+                    Write-Host ("TTL: {0}" -f (Format-JaxVaultDuration -Seconds ([double]$ttlSeconds)))
                 } catch {
                     # best-effort
                 }
+            }
+            $tokenPolicies = @()
+            if ($data.data.PSObject.Properties.Name -contains 'policies') {
+                $tokenPolicies = @($data.data.policies | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
+            }
+            if ($tokenPolicies.Count -gt 0) {
+                Write-Host ("Token policies: {0}" -f ($tokenPolicies -join ', '))
+            }
+            if ($data.data.PSObject.Properties.Name -contains 'path' -and
+                -not [string]::IsNullOrWhiteSpace([string]$data.data.path)) {
+                Write-Host ("Auth path: {0}" -f $data.data.path)
             }
             if (-not [string]::IsNullOrWhiteSpace([string]$expireTimeRaw)) {
                 Write-Host ("Expire time: {0}" -f $expireTimeRaw)
@@ -114,15 +116,7 @@ function Get-JaxVaultStatus {
                     if ($remaining.TotalSeconds -lt 0) {
                         Write-Host "Expires in: EXPIRED" -ForegroundColor Yellow
                     } else {
-                        $days = [int][Math]::Floor($remaining.TotalDays)
-                        $hours = $remaining.Hours
-                        $minutes = $remaining.Minutes
-                        $seconds = $remaining.Seconds
-                        if ($days -gt 0) {
-                            Write-Host ("Expires in: {0}d {1}h {2}m {3}s" -f $days, $hours, $minutes, $seconds)
-                        } else {
-                            Write-Host ("Expires in: {0}h {1}m {2}s" -f ([int]$remaining.TotalHours), $minutes, $seconds)
-                        }
+                        Write-Host ("Expires in: {0}" -f (Format-JaxVaultDuration -Seconds $remaining.TotalSeconds))
                     }
                 } catch {
                     # best-effort: leave as raw string

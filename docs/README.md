@@ -423,7 +423,8 @@ jax:
       machine: {}
       vault:
         enabled: false
-        # Optional child-token policy and TTL are configured by `jax vault set`.
+        # Optional: policy and tokenTtl mint a repository-local orphan token
+        # after login. Vault must allow auth/token/create-orphan for this pair.
       dotenv:
         enabled: false
         files:
@@ -852,7 +853,7 @@ agreed; basic scaffolds are implemented for several of them.
 - vault (implemented, minimal)
   - Purpose: HashiCorp Vault integration for secrets.
   - Hooks: BeforeSequenceResolve / BeforeRunEntity.
-  - Config: plugins.config.vault.policy (required when running `jax vault set`).
+  - Config: plugins.config.vault.policy + tokenTtl (optional child-token minting).
 
 - dotenv (implemented, minimal)
   - Purpose: local .env loader with configurable patterns.

@@ -31,10 +31,10 @@ module auto-loading makes commands available only after their first invocation.
 
 ```powershell
 Import-Module Jax
-Install-JaxShellIntegration
+Install-JaxShellIntegration -Shell powershell,zsh,bash
 ```
 
-By default this registers PowerShell plus the detected zsh or bash login shell.
+Omit `-Shell` to register PowerShell plus the detected zsh or bash login shell.
 When `SHELL` is unavailable to a non-interactive installer, it uses the platform
 default (zsh on macOS, bash on Linux).
 The thin, argument-safe `jax`, `jx`, and `jxs` functions route commands and
@@ -42,8 +42,13 @@ dynamic tab completion to PowerShell, so Jax keeps one implementation. Open a
 new shell afterward. Pass `-Shell powershell,zsh,bash` to register all three.
 The wrappers are sourced as shell functions from `~/.jax/shell`; they do not
 need to be added to `PATH`. Bash integration is written to both `~/.bashrc` and
-the login-shell `~/.bash_profile`. In zsh, Jax candidates open in a
-command-scoped selection menu: use the arrow keys and Enter to choose.
+the login-shell `~/.bash_profile`. In zsh, press Tab to open the
+command-scoped selection menu; candidates retain Jax's emoji labels and can be
+selected with the arrow keys and Enter. When no global zsh menu preference
+exists, Jax enables the standard `menu select=1` behavior; an existing user
+preference is preserved. In a UTF-8 locale, Jax also enables Zsh's
+`PRINT_EIGHT_BIT` option so completion lists render emoji literally instead of
+showing Unicode escape sequences.
 
 ## Start a new consumer repository
 

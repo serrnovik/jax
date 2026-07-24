@@ -3,12 +3,28 @@ param (
     [string] $InstallRoot = (Join-Path $HOME '.jax/module'),
     [switch] $SkipProfile,
     [string] $ProfilePath = $PROFILE.CurrentUserCurrentHost,
-    [ValidateSet('powershell', 'zsh', 'bash')]
     [string[]] $Shell
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+$validShells = @('powershell', 'zsh', 'bash')
+$normalizedShells = @(
+    foreach ($shellValue in @($Shell)) {
+        foreach ($shellName in @([string]$shellValue -split ',')) {
+            $normalizedShell = $shellName.Trim().ToLowerInvariant()
+            if ([string]::IsNullOrWhiteSpace($normalizedShell)) {
+                continue
+            }
+            if ($normalizedShell -notin $validShells) {
+                throw "Unsupported Jax shell '$normalizedShell'. Expected one of: $($validShells -join ', ')."
+            }
+            $normalizedShell
+        }
+    }
+)
+$Shell = @($normalizedShells | Select-Object -Unique)
 
 $sourceRoot = [IO.Path]::GetFullPath($PSScriptRoot)
 $installRootResolved = [IO.Path]::GetFullPath($InstallRoot)
@@ -89,20 +105,62 @@ if (Test-Path -LiteralPath $installRootResolved) {
 $stagingRoot = Join-Path $installParent ('.jax-staging-{0}' -f [guid]::NewGuid().ToString('N'))
 $backupRoot = Join-Path $installParent ('.jax-backup-{0}' -f [guid]::NewGuid().ToString('N'))
 
+function Test-JaxInstallPathWithin {
+    param(
+        [Parameter(Mandatory)] [string] $Parent,
+        [Parameter(Mandatory)] [string] $Candidate
+    )
+
+    $relative = [IO.Path]::GetRelativePath(
+        [IO.Path]::GetFullPath($Parent),
+        [IO.Path]::GetFullPath($Candidate)
+    )
+    if ($relative -eq '.') { return $true }
+    if ([IO.Path]::IsPathRooted($relative) -or $relative -eq '..') { return $false }
+    return -not $relative.StartsWith("..$([IO.Path]::DirectorySeparatorChar)", [StringComparison]::Ordinal)
+}
+
+function Assert-JaxInstallSourceSafe {
+    param([Parameter(Mandatory)] [string] $Path)
+
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    $items = @($item)
+    if ($item.PSIsContainer) {
+        $items += @(Get-ChildItem -LiteralPath $item.FullName -Force -Recurse -ErrorAction Stop)
+    }
+    $link = $items | Where-Object {
+        ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+        -not [string]::IsNullOrWhiteSpace([string]$_.LinkType)
+    } | Select-Object -First 1
+    if ($null -ne $link) {
+        $relative = [IO.Path]::GetRelativePath($sourceRoot, $link.FullName)
+        throw "Distribution manifest entry contains a symbolic link or reparse point: $relative"
+    }
+}
+
 function Copy-JaxManifestEntry {
     param (
         [Parameter(Mandatory = $true)] [string] $Source,
         [Parameter(Mandatory = $true)] [string] $Destination
     )
 
-    if (-not (Test-Path -LiteralPath $Source)) {
-        throw "Distribution manifest entry is missing: $Source"
+    $sourceResolved = [IO.Path]::GetFullPath($Source)
+    $destinationResolved = [IO.Path]::GetFullPath($Destination)
+    if (-not (Test-JaxInstallPathWithin -Parent $sourceRoot -Candidate $sourceResolved)) {
+        throw "Distribution manifest entry escapes the Jax source root: $Source"
     }
-    $destinationParent = Split-Path -Parent $Destination
+    if (-not (Test-JaxInstallPathWithin -Parent $stagingRoot -Candidate $destinationResolved)) {
+        throw "Distribution manifest destination escapes the install staging root: $Destination"
+    }
+    if (-not (Test-Path -LiteralPath $sourceResolved)) {
+        throw "Distribution manifest entry is missing: $sourceResolved"
+    }
+    Assert-JaxInstallSourceSafe -Path $sourceResolved
+    $destinationParent = Split-Path -Parent $destinationResolved
     if (-not (Test-Path -LiteralPath $destinationParent -PathType Container)) {
         New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
     }
-    Copy-Item -LiteralPath $Source -Destination $Destination -Recurse -Force
+    Copy-Item -LiteralPath $sourceResolved -Destination $destinationResolved -Recurse -Force
 }
 
 try {

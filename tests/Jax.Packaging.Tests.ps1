@@ -68,6 +68,69 @@ Describe 'Standalone Jax packaging' {
             Should -Not -Throw
     }
 
+    It 'accepts comma-separated shells through pwsh -File argument forwarding' {
+        $installer = Join-Path $script:sourceRoot 'Install-Jax.ps1'
+        $commaInstallRoot = Join-Path $script:testRoot 'comma-shell-install'
+
+        & pwsh -NoLogo -NoProfile -File $installer -InstallRoot $commaInstallRoot `
+            -SkipProfile -Shell powershell,zsh,bash
+
+        $LASTEXITCODE | Should -Be 0
+        Test-Path -LiteralPath (Join-Path $commaInstallRoot 'Jax.psd1') | Should -BeTrue
+    }
+
+    It 'rejects distribution manifest paths that escape the source root' {
+        $maliciousRoot = Join-Path $script:testRoot 'path-escape-source'
+        New-Item -ItemType Directory -Path $maliciousRoot -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $script:sourceRoot 'Build-JaxPackage.ps1') -Destination $maliciousRoot
+        Copy-Item -LiteralPath (Join-Path $script:sourceRoot 'Install-Jax.ps1') -Destination $maliciousRoot
+        Set-Content -LiteralPath (Join-Path $maliciousRoot 'VERSION') -Value '0.1.10'
+        Set-Content -LiteralPath (Join-Path $maliciousRoot 'Jax.psd1') -Value "@{ ModuleVersion = '0.1.10' }"
+        Set-Content -LiteralPath (Join-Path $script:testRoot 'outside.txt') -Value 'must not be packaged'
+        @'
+@{
+    Version = '0.1.10'
+    Files = @('../outside.txt')
+    Directories = @()
+    DirectorySets = @()
+}
+'@ | Set-Content -LiteralPath (Join-Path $maliciousRoot 'distribution-manifest.psd1')
+
+        { & (Join-Path $maliciousRoot 'Build-JaxPackage.ps1') `
+                -OutputPath (Join-Path $script:testRoot 'escape-package') } |
+            Should -Throw '*escapes the Jax source root*'
+        { & (Join-Path $maliciousRoot 'Install-Jax.ps1') `
+                -InstallRoot (Join-Path $script:testRoot 'escape-install') -SkipProfile } |
+            Should -Throw '*escapes the Jax source root*'
+    }
+
+    It 'rejects symbolic links in packaged and installed manifest entries' -Skip:$IsWindows {
+        $maliciousRoot = Join-Path $script:testRoot 'symlink-source'
+        New-Item -ItemType Directory -Path $maliciousRoot -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $script:sourceRoot 'Build-JaxPackage.ps1') -Destination $maliciousRoot
+        Copy-Item -LiteralPath (Join-Path $script:sourceRoot 'Install-Jax.ps1') -Destination $maliciousRoot
+        Set-Content -LiteralPath (Join-Path $maliciousRoot 'VERSION') -Value '0.1.10'
+        Set-Content -LiteralPath (Join-Path $maliciousRoot 'Jax.psd1') -Value "@{ ModuleVersion = '0.1.10' }"
+        $outsidePath = Join-Path $script:testRoot 'private-value.txt'
+        Set-Content -LiteralPath $outsidePath -Value 'must not be packaged'
+        New-Item -ItemType SymbolicLink -Path (Join-Path $maliciousRoot 'linked.txt') -Target $outsidePath | Out-Null
+        @'
+@{
+    Version = '0.1.10'
+    Files = @('linked.txt')
+    Directories = @()
+    DirectorySets = @()
+}
+'@ | Set-Content -LiteralPath (Join-Path $maliciousRoot 'distribution-manifest.psd1')
+
+        { & (Join-Path $maliciousRoot 'Build-JaxPackage.ps1') `
+                -OutputPath (Join-Path $script:testRoot 'symlink-package') } |
+            Should -Throw '*symbolic link or reparse point*'
+        { & (Join-Path $maliciousRoot 'Install-Jax.ps1') `
+                -InstallRoot (Join-Path $script:testRoot 'symlink-install') -SkipProfile } |
+            Should -Throw '*symbolic link or reparse point*'
+    }
+
     It 'registers idempotent PowerShell profile integration' {
         Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
         $powerShellProfile = Join-Path $script:testRoot 'profiles/profile.ps1'
@@ -81,6 +144,17 @@ Describe 'Standalone Jax packaging' {
         $profileContent | Should -Match "Join-Path [`$]HOME '.jax/module/Jax\.psd1'"
         $profileContent | Should -Match 'Remove-Module -Force'
         $profileContent | Should -Match 'Import-Module [`$]jaxProfileModulePath -Global'
+    }
+
+    It 'does not claim shell integration was registered under WhatIf' {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $powerShellProfile = Join-Path $script:testRoot 'profiles/whatif-profile.ps1'
+
+        $output = Install-JaxShellIntegration -Shell powershell `
+            -PowerShellProfilePath $powerShellProfile -WhatIf *>&1 | Out-String
+
+        Test-Path -LiteralPath $powerShellProfile | Should -BeFalse
+        $output | Should -Not -Match 'integration registered'
     }
 
     It 'registers idempotent zsh and bash shell integration' -Skip:($IsWindows) {
@@ -142,7 +216,7 @@ Describe 'Standalone Jax packaging' {
         $bashProfile = Join-Path $script:testRoot 'source-profiles/.bashrc'
         $modulePath = Join-Path $script:installRoot 'Jax.psd1'
 
-        Install-JaxShellIntegration -Shell powershell, zsh, bash -ModulePath $modulePath `
+        Install-JaxShellIntegration -Shell 'powershell,zsh,bash' -ModulePath $modulePath `
             -InstallRoot $shellRoot -PowerShellProfilePath $powerShellProfile `
             -ZshProfilePath $zshProfile -BashProfilePath $bashProfile
 
@@ -242,21 +316,32 @@ _jax_register_zsh_completion
         $LASTEXITCODE | Should -Be 0
     }
 
-    It 'enables arrow-key menu selection only for Jax zsh commands' `
+    It 'enables arrow-key zsh menu selection without replacing a user preference' `
         -Skip:($IsWindows -or $null -eq (Get-Command zsh -ErrorAction SilentlyContinue)) {
         $wrapper = Join-Path $script:installRoot 'shell/jax.zsh'
         & zsh -fc @'
+LANG=C.UTF-8
+unset LC_ALL LC_CTYPE
 autoload -Uz compinit
 compinit
 source "$1"
 zmodload -e zsh/complist || exit 1
-for command_name in jax jx jxs; do
-    menu_style=''
-    zstyle -s ":completion:*:*:${command_name}:*" menu menu_style || exit 1
-    [[ "$menu_style" == "select=1" ]] || exit 1
-done
-global_menu=''
-! zstyle -s ':completion:*' menu global_menu
+[[ -o printeightbit ]] || exit 1
+menu_style=''
+zstyle -s ':completion:*' menu menu_style || exit 1
+[[ "$menu_style" == "select=1" ]] || exit 1
+'@ jax-test $wrapper
+
+        $LASTEXITCODE | Should -Be 0
+
+        & zsh -fc @'
+autoload -Uz compinit
+compinit
+zstyle ':completion:*' menu select=7
+source "$1"
+menu_style=''
+zstyle -s ':completion:*' menu menu_style || exit 1
+[[ "$menu_style" == "select=7" ]] || exit 1
 '@ jax-test $wrapper
 
         $LASTEXITCODE | Should -Be 0
@@ -276,6 +361,10 @@ global_menu=''
             $completionOutput = & pwsh -NoLogo -NoProfile `
                 -File (Join-Path $script:installRoot 'shell/Jax.ShellCompletion.ps1') `
                 'jax -e ' 7
+
+            $zshCompletionOutput = & pwsh -NoLogo -NoProfile `
+                -File (Join-Path $script:installRoot 'shell/Jax.ShellCompletion.ps1') `
+                'jax -e ' 7 zsh
         } finally {
             if ($null -eq $previousModulePath) {
                 Remove-Item Env:JAX_MODULE_PATH -ErrorAction SilentlyContinue
@@ -290,6 +379,12 @@ global_menu=''
         }
 
         @($completionOutput) | Should -Contain 'sample/dev/build'
+
+        $sampleCompletion = @($zshCompletionOutput) |
+            Where-Object { $_ -like "sample/dev/build`t*" } |
+            Select-Object -First 1
+        $sampleCompletion | Should -Not -BeNullOrEmpty
+        $sampleCompletion | Should -Match "^sample/dev/build`t\S+ 🔨 sample/dev  \[build\]$"
     }
 
     It 'caches Gallery version checks and makes offline retries cheap' {

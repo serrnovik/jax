@@ -80,7 +80,7 @@ uncommitted.
 
 Vault and Docker plugins may be loaded without being active. Vault secret
 resolution requires `plugins.config.vault.enabled: true` or an explicit
-runtime override. Use `jax -C <repo-path> vault set` for interactive
+runtime override. Use `jax -C <repo-path> vault login` for interactive
 authentication and `jax -C <repo-path> vault status` for diagnostics. Set
 `plugins.config.vault.authMount` when GitHub auth is mounted somewhere other
 than `auth/github`. Never place tokens, personal paths, or

@@ -36,6 +36,7 @@ try {
 
     $inputLine = [string]$args[0]
     $cursor = [Math]::Min([int]$args[1], $inputLine.Length)
+    $outputFormat = if ($args.Count -ge 3) { [string]$args[2] } else { 'plain' }
     $moduleRoot = Split-Path -Parent $manifestPath
     . (Join-Path $moduleRoot 'jax.auto-completion.ps1')
 
@@ -87,8 +88,18 @@ try {
         & $jaxCompleter 'jax' 'CommandArgs' $wordToComplete $commandAst @{}
     }
 
-    foreach ($candidate in @($completionResults | ForEach-Object CompletionText | Sort-Object -Unique)) {
-        [Console]::Out.WriteLine($candidate)
+    foreach ($candidate in @($completionResults | Sort-Object -Property CompletionText -Unique)) {
+        $completionText = [string]$candidate.CompletionText
+        if ($outputFormat -eq 'zsh') {
+            $displayText = [string]$candidate.ListItemText
+            if ([string]::IsNullOrWhiteSpace($displayText)) {
+                $displayText = $completionText
+            }
+            $displayText = $displayText -replace '[\r\n\t]+', ' '
+            [Console]::Out.WriteLine("$completionText`t$displayText")
+        } else {
+            [Console]::Out.WriteLine($completionText)
+        }
     }
 } catch {
     # Completion is best-effort and must never make the interactive shell noisy.

@@ -65,6 +65,11 @@ function Get-JaxEnvironments {
             $envDir = Split-Path -Path $flowDir.FullName -Parent
             $envRelative = $envDir.Substring($envRootPath.Length).TrimStart([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
             $envName = $envRelative -replace '\\', '/'
+            $envNameParts = @($envName -split '/' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+            if ($envNameParts.Count -gt 0 -and
+                [string]::Equals($envNameParts[-1], [string]$Config.commonDirName, [StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
 
             $hierarchyPaths = Get-JaxEnvHierarchyPaths -RepoRoot $RepoRoot -Config $Config -EnvDir $envDir
             $hierarchyFlowDirs = New-Object 'System.Collections.Generic.List[string]'
@@ -112,6 +117,13 @@ function Get-JaxEnvironments {
 
             foreach ($key in $flowConfigOrder) {
                 $flowConfigs += $flowConfigIndex[$key]
+            }
+
+            # Flow directories are often anchored in git before they contain a
+            # configuration. They are not runnable environments until at least
+            # one effective flow config exists in their hierarchy.
+            if ($flowConfigs.Count -eq 0) {
+                continue
             }
 
             $envs += [pscustomobject]@{

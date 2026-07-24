@@ -220,6 +220,47 @@ jax:
         }
     }
 
+    It 'does not complete hierarchy-only common directories' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $tempRoot | Out-Null
+
+        $commonFlowDir = Join-Path $tempRoot 'env/acme/common/flows'
+        $devFlowDir = Join-Path $tempRoot 'env/acme/dev/flows'
+        New-Item -ItemType Directory -Path $commonFlowDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $devFlowDir -Force | Out-Null
+        Set-Content -Path (Join-Path $commonFlowDir '.gitkeep') -Value '' -Encoding ascii
+        Set-Content -Path (Join-Path $devFlowDir 'ops.yml') -Value "suite:" -Encoding ascii
+
+        $repoConfigPath = Join-Path $tempRoot '.jax/jax.config.yml'
+        New-Item -ItemType Directory -Path (Split-Path $repoConfigPath -Parent) -Force | Out-Null
+        @'
+jax:
+  envRoot: env
+  dummyEnv:
+    enabled: false
+  flowDirNames:
+    - flows
+  flowFilePatterns:
+    - "*.yml"
+  commonDirName: common
+'@ | Set-Content -Path $repoConfigPath -Encoding ascii
+
+        $previous = $env:JAX_REPO_ROOT
+        $env:JAX_REPO_ROOT = $tempRoot
+        try {
+            $names = @(Get-JaxCompletionEnvChoices -StartsWith '' | Select-Object -ExpandProperty Name)
+            $names | Should -Contain 'acme/dev/ops'
+            $names | Should -Not -Contain 'acme/common'
+        } finally {
+            if ($null -ne $previous) {
+                $env:JAX_REPO_ROOT = $previous
+            } else {
+                Remove-Item Env:JAX_REPO_ROOT -ErrorAction SilentlyContinue
+            }
+            Remove-Item -Path $tempRoot -Recurse -Force
+        }
+    }
+
     It 'completes tasks for dummy env using non-conventional discovery' {
         $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $tempRoot | Out-Null

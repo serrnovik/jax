@@ -139,7 +139,7 @@ Describe "Jax.Plugin.Vault" {
                     $script:vaultStatusCalls += ,@($args)
                     $global:LASTEXITCODE = 0
                     if ($args -contains 'lookup-self') {
-                        return '{"data":{"ttl":3600,"expire_time":"2099-01-01T00:00:00Z"}}'
+                        return '{"data":{"ttl":3600,"expire_time":"2099-01-01T00:00:00Z","policies":["tn1","tn1-admin"],"path":"auth/github-tn1/login"}}'
                     }
                     if ($args -contains 'list') {
                         return '["hello"]'
@@ -147,11 +147,20 @@ Describe "Jax.Plugin.Vault" {
                     return '{}'
                 }
 
-                Get-JaxVaultStatus
+                $output = Get-JaxVaultStatus 6>&1 | Out-String
 
                 $calls = @($script:vaultStatusCalls | ForEach-Object { $_ -join ' ' })
                 ($calls -join "`n") | Should -Match ([regex]::Escape('kv get -format=json tn1/hello'))
                 ($calls -join "`n") | Should -Match ([regex]::Escape('kv list -format=json tn1/'))
+                $output | Should -Match 'TTL: 1h'
+                $output | Should -Match 'Token policies: tn1, tn1-admin'
+                $output | Should -Match 'Auth path: auth/github-tn1/login'
+            }
+
+            It "formats long Vault durations for humans" {
+                Format-JaxVaultDuration -Duration '87600h' | Should -Be '10y'
+                Format-JaxVaultDuration -Seconds 90061 | Should -Be '1d 1h 1m 1s'
+                Format-JaxVaultDuration -Duration '1h30m' | Should -Be '1h30m'
             }
         }
 
@@ -316,8 +325,6 @@ Describe "Jax.Plugin.Vault" {
                     $script:promptCount++
                     if ($script:promptCount -eq 1) { return 'https://env.example' } # vault address
                     if ($script:promptCount -eq 2) { return '.jax/testvaultenv/vault' } # tokenDir
-                    if ($script:promptCount -eq 3) { return 'demo-policy' }             # optional policy
-                    if ($script:promptCount -eq 4) { return '8h' }                     # tokenTtl
                     return 'token'                                                     # auth method
                 }
                 Mock Read-Host { param($Prompt, $AsSecureString) (ConvertTo-SecureString 'abc' -AsPlainText -Force) }
@@ -334,7 +341,7 @@ Describe "Jax.Plugin.Vault" {
                     $env:VAULT_TOKEN = $oldToken
                 }
 
-                Assert-MockCalled Read-JaxPromptString -Times 5
+                Assert-MockCalled Read-JaxPromptString -Times 3
                 (Test-Path $tmpTokenPath) | Should -Be $true
                 (Get-Content -Path $tmpTokenPath -Raw).Trim() | Should -Be 'abc'
                 if (-not $IsWindows) {
@@ -369,6 +376,24 @@ Describe "Jax.Plugin.Vault" {
                 }
             }
 
+            It "writes native standard input without appending a newline" {
+                $pwshPath = (Get-Process -Id $PID).Path
+                $inputText = 'github-secret-token'
+                $script = @'
+$value = [Console]::In.ReadToEnd()
+[Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($value)))
+'@
+
+                $result = Invoke-JaxNativeCommandWithStandardInput `
+                    -FilePath $pwshPath `
+                    -Arguments @('-NoLogo', '-NoProfile', '-Command', $script) `
+                    -StandardInput $inputText
+
+                $result.ExitCode | Should -Be 0
+                $result.StdErr | Should -BeNullOrEmpty
+                $result.StdOut | Should -Be ([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($inputText)))
+            }
+
             It "uses the configured GitHub auth mount without putting the GitHub token in process arguments" {
                 $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
                 $tmpTokenPath = Join-Path $tmpRoot 'token'
@@ -386,10 +411,19 @@ Describe "Jax.Plugin.Vault" {
                 Mock Get-JaxConfig { @{ } }
                 Mock Update-JaxVaultRepoConfig { @{ } }
                 Mock Read-JaxPromptBool { return $false }
-                Mock vault {
-                    $script:vaultLoginArgs = @($args)
-                    $global:LASTEXITCODE = 0
-                    return '{"auth":{"client_token":"vault-child-token"}}'
+                Mock Get-Command {
+                    [pscustomobject]@{ Source = '/test/bin/vault' }
+                } -ParameterFilter { $Name -eq 'vault' }
+                Mock Invoke-JaxNativeCommandWithStandardInput {
+                    param($FilePath, $Arguments, $StandardInput)
+                    $script:vaultLoginFilePath = $FilePath
+                    $script:vaultLoginArgs = @($Arguments)
+                    $script:vaultLoginStandardInput = $StandardInput
+                    return [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut   = '{"auth":{"client_token":"vault-child-token"}}'
+                        StdErr   = ''
+                    }
                 }
 
                 $oldGitHubToken = $env:GITHUB_TOKEN
@@ -400,9 +434,91 @@ Describe "Jax.Plugin.Vault" {
                     $env:GITHUB_TOKEN = $oldGitHubToken
                 }
 
+                $script:vaultLoginFilePath | Should -Be '/test/bin/vault'
                 ($script:vaultLoginArgs -join ' ') | Should -Be 'write -format=json auth/github-example/login token=-'
                 ($script:vaultLoginArgs -join ' ') | Should -Not -Match 'github-secret-token'
+                $script:vaultLoginStandardInput | Should -Be 'github-secret-token'
                 (Get-Content -Path $tmpTokenPath -Raw).Trim() | Should -Be 'vault-child-token'
+            }
+
+            It "mints configured repository tokens as long-lived orphans" {
+                $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+                $tmpTokenPath = Join-Path $tmpRoot 'token'
+
+                Mock Get-JaxVaultTokenPath { $tmpTokenPath }
+                Mock Get-JaxVaultPluginConfig {
+                    @{
+                        address  = 'https://vault.example'
+                        tokenDir = '.jax/example/vault'
+                        policy   = 'example-policy'
+                        tokenTtl = '87600h'
+                    }
+                }
+                Mock Get-JaxRepoRoot { '/tmp/repo' }
+                Mock Get-JaxConfig { @{ } }
+                Mock Update-JaxVaultRepoConfig { @{ } }
+                Mock Read-JaxPromptBool { return $false }
+                Mock Get-Command {
+                    [pscustomobject]@{ Source = '/test/bin/vault' }
+                } -ParameterFilter { $Name -eq 'vault' }
+                Mock Invoke-JaxNativeCommandWithStandardInput {
+                    param($FilePath, $Arguments, $StandardInput)
+                    $script:vaultCreateFilePath = $FilePath
+                    $script:vaultCreateArgs = @($Arguments)
+                    $script:vaultCreateStandardInput = $StandardInput
+                    return [pscustomobject]@{
+                        ExitCode = 0
+                        StdOut   = '{"auth":{"client_token":"vault-orphan-token","lease_duration":315360000}}'
+                        StdErr   = ''
+                    }
+                }
+
+                Set-JaxVaultToken -Method token -VaultToken 'vault-login-token' | Out-Null
+
+                $script:vaultCreateFilePath | Should -Be '/test/bin/vault'
+                ($script:vaultCreateArgs -join ' ') |
+                    Should -Be 'write -format=json auth/token/create-orphan ttl=87600h policies=example-policy'
+                $script:vaultCreateStandardInput | Should -BeNullOrEmpty
+                (Get-Content -Path $tmpTokenPath -Raw).Trim() | Should -Be 'vault-orphan-token'
+            }
+
+            It "surfaces sanitized Vault GitHub login errors" {
+                $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+                $tmpTokenPath = Join-Path $tmpRoot 'token'
+
+                Mock Get-JaxVaultTokenPath { $tmpTokenPath }
+                Mock Get-JaxVaultPluginConfig {
+                    @{
+                        address   = 'https://vault.example'
+                        authMount = 'github-example'
+                        tokenDir  = '.jax/example/vault'
+                        tokenTtl  = '8h'
+                    }
+                }
+                Mock Get-JaxRepoRoot { '/tmp/repo' }
+                Mock Get-JaxConfig { @{ } }
+                Mock Update-JaxVaultRepoConfig { @{ } }
+                Mock Read-JaxPromptBool { return $false }
+                Mock Get-Command {
+                    [pscustomobject]@{ Source = '/test/bin/vault' }
+                } -ParameterFilter { $Name -eq 'vault' }
+                Mock Invoke-JaxNativeCommandWithStandardInput {
+                    return [pscustomobject]@{
+                        ExitCode = 2
+                        StdOut   = ''
+                        StdErr   = 'GitHub rejected github-secret-token'
+                    }
+                }
+
+                $oldGitHubToken = $env:GITHUB_TOKEN
+                try {
+                    $env:GITHUB_TOKEN = 'github-secret-token'
+                    {
+                        Set-JaxVaultToken -Method github -ErrorAction Stop
+                    } | Should -Throw '*Vault said: GitHub rejected*REDACTED*'
+                } finally {
+                    $env:GITHUB_TOKEN = $oldGitHubToken
+                }
             }
         }
 
@@ -541,7 +657,6 @@ jax:
                     param($Prompt, $Default)
                     if ($Prompt -eq 'Vault address') { return 'http://127.0.0.1:8200' }
                     if ($Prompt -like 'Token directory (relative to HOME or absolute*') { return '.jax/testvaultenv/vault' }
-                    if ($Prompt -eq 'Vault policy name (optional; blank keeps the login token)') { return 'demo-policy' }
                     return $Default
                 }
 
@@ -551,8 +666,8 @@ jax:
                 $cfg = Read-JaxYaml -Path $cfgPath
                 $cfg.jax.plugins.config.vault.address | Should -Be 'http://127.0.0.1:8200'
                 $cfg.jax.plugins.config.vault.tokenDir | Should -Be '.jax/testvaultenv/vault'
-                $cfg.jax.plugins.config.vault.policy | Should -Be 'demo-policy'
-                $cfg.jax.plugins.config.vault.tokenTtl | Should -Be '8h'
+                $cfg.jax.plugins.config.vault.Contains('policy') | Should -BeFalse
+                $cfg.jax.plugins.config.vault.Contains('tokenTtl') | Should -BeFalse
                 $cfg.jax.plugins.config.vault.enabled | Should -Be $true
 
                 (Test-Path $tmpTokenPath) | Should -Be $true
@@ -588,5 +703,43 @@ jax:
                 (Get-JaxVaultTokenPath) | Should -Be $expected
             }
         }
+    }
+}
+
+Describe "Jax Vault CLI repository targeting" {
+    It "uses -C to select the repository-specific Vault token store" {
+        $targetRepo = Join-Path $TestDrive 'target-repo'
+        $callerRepo = Join-Path $TestDrive 'caller-repo'
+        New-Item -ItemType Directory -Path (Join-Path $targetRepo '.jax') -Force | Out-Null
+        New-Item -ItemType Directory -Path $callerRepo -Force | Out-Null
+        & git -C $targetRepo init --quiet
+        & git -C $callerRepo init --quiet
+        @'
+jax:
+  plugins:
+    config:
+      vault:
+        address: https://vault.example
+        tokenDir: .jax/target-repo/vault
+'@ | Set-Content -LiteralPath (Join-Path $targetRepo '.jax/jax.config.yml') -Encoding ascii
+
+        $previousRepoRoot = $env:JAX_REPO_ROOT
+        Remove-Item Env:JAX_REPO_ROOT -ErrorAction SilentlyContinue
+        $launcher = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../jax.ps1')).Path
+        Push-Location $callerRepo
+        try {
+            $output = & $launcher -C $targetRepo vault status -q 6>&1 | Out-String
+        } finally {
+            Pop-Location
+            if ($null -eq $previousRepoRoot) {
+                Remove-Item Env:JAX_REPO_ROOT -ErrorAction SilentlyContinue
+            } else {
+                $env:JAX_REPO_ROOT = $previousRepoRoot
+            }
+        }
+
+        $expectedTokenPath = Join-Path $HOME '.jax/target-repo/vault/token'
+        $output | Should -Match ([regex]::Escape("Token path: $expectedTokenPath"))
+        $output | Should -Not -Match ([regex]::Escape((Join-Path $HOME '.jax/vault/token')))
     }
 }

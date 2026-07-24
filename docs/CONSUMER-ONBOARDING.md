@@ -11,12 +11,15 @@
 Use `Install-Module Jax -Scope CurrentUser -Repository PSGallery` when
 PowerShellGet v2 is the available package manager.
 
-For zsh or bash, run `Install-JaxShellIntegration` without `-Shell`; it
-registers PowerShell plus the detected login shell, or the platform default
-when `SHELL` is unavailable (zsh on macOS, bash on Linux). The generated shell
-functions route arguments and completion through `pwsh`; they do not duplicate
-the Jax runtime and do not need a `PATH` entry. Bash registration covers both
-`~/.bashrc` and `~/.bash_profile`; zsh completion supports arrow-key selection.
+For zsh or bash, run
+`Install-JaxShellIntegration -Shell powershell,zsh,bash`, or omit `-Shell` to
+register PowerShell plus the detected login shell. When `SHELL` is unavailable,
+Jax uses the platform default (zsh on macOS, bash on Linux). The generated
+shell functions route arguments and completion through `pwsh`; they do not
+duplicate the Jax runtime and do not need a `PATH` entry. Bash registration
+covers both `~/.bashrc` and `~/.bash_profile`; zsh completion preserves emoji
+labels and supports arrow-key selection. It enables zsh's standard selection
+menu only when the user has not already configured a global menu preference.
 
 For local Jax development, invoke `./Install-Jax.ps1` directly from a
 PowerShell session. It installs and pins the source build in PowerShell and the

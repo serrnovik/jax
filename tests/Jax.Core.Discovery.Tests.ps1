@@ -66,6 +66,48 @@ Describe 'Get-JaxEnvironments' {
         Remove-Item -Path $tempRoot -Recurse -Force
     }
 
+    It 'treats common directories as hierarchy layers rather than environments' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $tempRoot | Out-Null
+
+        $envRoot = Join-Path $tempRoot 'env'
+        $repoCommonFlows = Join-Path $envRoot 'common/flows'
+        $clientCommonFlows = Join-Path $envRoot 'acme/common/flows'
+        $devFlows = Join-Path $envRoot 'acme/dev/flows'
+        New-Item -ItemType Directory -Path $repoCommonFlows -Force | Out-Null
+        New-Item -ItemType Directory -Path $clientCommonFlows -Force | Out-Null
+        New-Item -ItemType Directory -Path $devFlows -Force | Out-Null
+        Set-Content -Path (Join-Path $repoCommonFlows 'build.yml') -Value "suite:" -Encoding ascii
+        Set-Content -Path (Join-Path $clientCommonFlows 'ops.yml') -Value "suite:" -Encoding ascii
+        Set-Content -Path (Join-Path $devFlows 'test.yml') -Value "suite:" -Encoding ascii
+
+        $config = Get-JaxConfig -RepoRoot $tempRoot -SkipUserConfig
+        $envs = Get-JaxEnvironments -RepoRoot $tempRoot -Config $config
+        $envNames = @($envs | Select-Object -ExpandProperty Name | Sort-Object)
+
+        $envNames | Should -Be @('acme/dev', 'none')
+        $dev = $envs | Where-Object { $_.Name -eq 'acme/dev' } | Select-Object -First 1
+        @($dev.FlowConfigs.Configuration | Sort-Object) | Should -Be @('build', 'ops', 'test')
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+
+    It 'does not discover empty flow directories as environments' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $tempRoot | Out-Null
+
+        $flowDir = Join-Path $tempRoot 'env/acme/dev/flows'
+        New-Item -ItemType Directory -Path $flowDir -Force | Out-Null
+        Set-Content -Path (Join-Path $flowDir '.gitkeep') -Value '' -Encoding ascii
+
+        $config = Get-JaxConfig -RepoRoot $tempRoot -SkipUserConfig
+        $envs = Get-JaxEnvironments -RepoRoot $tempRoot -Config $config
+
+        @($envs | Select-Object -ExpandProperty Name) | Should -Be @('none')
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+
     It 'returns dummy env when env root is missing' {
         $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $tempRoot | Out-Null

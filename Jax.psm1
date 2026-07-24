@@ -117,7 +117,6 @@ function Get-JaxUpdateStatus {
 function Install-JaxShellIntegration {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [ValidateSet('powershell', 'zsh', 'bash')]
         [string[]] $Shell,
         # Source installs pass their exact manifest so every shell uses the
         # checkout build instead of a possibly newer Gallery installation.
@@ -130,6 +129,23 @@ function Install-JaxShellIntegration {
         [string] $BashProfilePath = (Join-Path $HOME '.bashrc'),
         [string] $BashLoginProfilePath
     )
+
+    $validShells = @('powershell', 'zsh', 'bash')
+    $normalizedShells = @(
+        foreach ($shellValue in @($Shell)) {
+            foreach ($shellName in @([string]$shellValue -split ',')) {
+                $normalizedShell = $shellName.Trim().ToLowerInvariant()
+                if ([string]::IsNullOrWhiteSpace($normalizedShell)) {
+                    continue
+                }
+                if ($normalizedShell -notin $validShells) {
+                    throw "Unsupported Jax shell '$normalizedShell'. Expected one of: $($validShells -join ', ')."
+                }
+                $normalizedShell
+            }
+        }
+    )
+    $Shell = @($normalizedShells | Select-Object -Unique)
 
     $resolvedModulePath = $null
     if (-not [string]::IsNullOrWhiteSpace($ModulePath)) {
@@ -272,8 +288,8 @@ $endMarker
                 $profileDirectory = Split-Path -Parent $profilePath
                 New-Item -ItemType Directory -Path $profileDirectory -Force | Out-Null
                 Set-Content -LiteralPath $profilePath -Value $profileContent -Encoding utf8
+                Write-Host "Jax $shellName integration registered in $profilePath" -ForegroundColor Green
             }
-            Write-Host "Jax $shellName integration registered in $profilePath" -ForegroundColor Green
         }
     }
 

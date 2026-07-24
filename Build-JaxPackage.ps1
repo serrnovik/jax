@@ -51,16 +51,56 @@ $outputParent = Split-Path -Parent $outputRoot
 New-Item -ItemType Directory -Path $outputParent -Force | Out-Null
 $stagingRoot = Join-Path $outputParent ('.jax-package-staging-' + [guid]::NewGuid().ToString('N'))
 
+function Test-JaxPackagePathWithin {
+    param(
+        [Parameter(Mandatory)] [string] $Parent,
+        [Parameter(Mandatory)] [string] $Candidate
+    )
+
+    $relative = [IO.Path]::GetRelativePath(
+        [IO.Path]::GetFullPath($Parent),
+        [IO.Path]::GetFullPath($Candidate)
+    )
+    if ($relative -eq '.') { return $true }
+    if ([IO.Path]::IsPathRooted($relative) -or $relative -eq '..') { return $false }
+    return -not $relative.StartsWith("..$([IO.Path]::DirectorySeparatorChar)", [StringComparison]::Ordinal)
+}
+
+function Assert-JaxPackageSourceSafe {
+    param([Parameter(Mandatory)] [string] $Path)
+
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    $items = @($item)
+    if ($item.PSIsContainer) {
+        $items += @(Get-ChildItem -LiteralPath $item.FullName -Force -Recurse -ErrorAction Stop)
+    }
+    $link = $items | Where-Object {
+        ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+        -not [string]::IsNullOrWhiteSpace([string]$_.LinkType)
+    } | Select-Object -First 1
+    if ($null -ne $link) {
+        $relative = [IO.Path]::GetRelativePath($sourceRoot, $link.FullName)
+        throw "Distribution manifest entry contains a symbolic link or reparse point: $relative"
+    }
+}
+
 function Copy-JaxPackageEntry {
     param(
         [Parameter(Mandatory)] [string] $RelativePath
     )
 
-    $source = Join-Path $sourceRoot $RelativePath
-    $destination = Join-Path $stagingRoot $RelativePath
+    $source = [IO.Path]::GetFullPath((Join-Path $sourceRoot $RelativePath))
+    $destination = [IO.Path]::GetFullPath((Join-Path $stagingRoot $RelativePath))
+    if (-not (Test-JaxPackagePathWithin -Parent $sourceRoot -Candidate $source)) {
+        throw "Distribution manifest entry escapes the Jax source root: $RelativePath"
+    }
+    if (-not (Test-JaxPackagePathWithin -Parent $stagingRoot -Candidate $destination)) {
+        throw "Distribution manifest destination escapes the package staging root: $RelativePath"
+    }
     if (-not (Test-Path -LiteralPath $source)) {
         throw "Distribution manifest entry is missing: $RelativePath"
     }
+    Assert-JaxPackageSourceSafe -Path $source
     $destinationParent = Split-Path -Parent $destination
     New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
     Copy-Item -LiteralPath $source -Destination $destination -Recurse -Force

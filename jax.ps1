@@ -512,10 +512,12 @@ begin {
         # Defensive: avoid passing empty positional args into plugin commands (can bind to VaultToken etc.)
         $subArgs = @($subArgs | Where-Object { $_ -ne $null -and -not [string]::IsNullOrWhiteSpace([string]$_) })
 
+        $previousRepoRootOverride = $env:JAX_REPO_ROOT
         try {
             # Load core config
             $repoRoot = $jaxRepoRoot
             $config = Get-JaxConfig -RepoRoot $repoRoot @commonParams
+            $env:JAX_REPO_ROOT = $repoRoot
 
             # Try standard plugin load in case user configured it
             Import-JaxPlugins -Config $config -RepoRoot $repoRoot @commonParams | Out-Null
@@ -553,6 +555,12 @@ begin {
             }
         } catch {
             Write-Error "Failed to execute vault command: $_"
+        } finally {
+            if ($null -eq $previousRepoRootOverride) {
+                Remove-Item Env:JAX_REPO_ROOT -ErrorAction SilentlyContinue
+            } else {
+                $env:JAX_REPO_ROOT = $previousRepoRootOverride
+            }
         }
         return
     }
