@@ -120,7 +120,9 @@ function Install-JaxShellIntegration {
         [ValidateSet('powershell', 'zsh', 'bash')]
         [string[]] $Shell,
         [string] $InstallRoot = (Join-Path $HOME '.jax/shell'),
-        [string] $PowerShellProfilePath = $PROFILE.CurrentUserAllHosts,
+        # CurrentUserCurrentHost loads after the all-hosts profile, so later
+        # profile commands cannot silently replace the jax/jx aliases.
+        [string] $PowerShellProfilePath = $PROFILE.CurrentUserCurrentHost,
         [string] $ZshProfilePath = (Join-Path $HOME '.zshrc'),
         [string] $BashProfilePath = (Join-Path $HOME '.bashrc')
     )
