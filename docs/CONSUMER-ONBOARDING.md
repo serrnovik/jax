@@ -4,14 +4,17 @@
 
 1. Install PowerShell 7.2+ and Git.
 2. Run `Install-PSResource Jax -Scope CurrentUser -TrustRepository`.
-3. Run `Import-Module Jax`, then `jax help`.
+3. Run `Import-Module Jax`.
+4. Run `Install-JaxShellIntegration -Shell powershell` once so completion is
+   ready in every new PowerShell session, then run `jax help`.
 
 Use `Install-Module Jax -Scope CurrentUser -Repository PSGallery` when
 PowerShellGet v2 is the available package manager.
 
-For zsh or bash, run `Install-JaxShellIntegration` after importing the module.
-The generated shell functions route arguments and completion through `pwsh`;
-they do not duplicate the Jax runtime.
+For zsh or bash, run `Install-JaxShellIntegration` without `-Shell`; it
+registers PowerShell plus the detected login shell. The generated shell
+functions route arguments and completion through `pwsh`; they do not duplicate
+the Jax runtime.
 
 ## Add Jax to a repository
 

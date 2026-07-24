@@ -117,64 +117,88 @@ function Get-JaxUpdateStatus {
 function Install-JaxShellIntegration {
     [CmdletBinding(SupportsShouldProcess)]
     param(
-        [ValidateSet('zsh', 'bash')]
+        [ValidateSet('powershell', 'zsh', 'bash')]
         [string[]] $Shell,
         [string] $InstallRoot = (Join-Path $HOME '.jax/shell'),
+        [string] $PowerShellProfilePath = $PROFILE.CurrentUserAllHosts,
         [string] $ZshProfilePath = (Join-Path $HOME '.zshrc'),
         [string] $BashProfilePath = (Join-Path $HOME '.bashrc')
     )
 
-    if ($IsWindows) {
-        throw 'Jax zsh/bash integration is supported on macOS and Linux.'
-    }
     if ($null -eq $Shell -or $Shell.Count -eq 0) {
+        $Shell = @('powershell')
         $detectedShell = [IO.Path]::GetFileName([string]$env:SHELL)
-        if ($detectedShell -in @('zsh', 'bash')) {
-            $Shell = @($detectedShell)
-        } else {
-            throw 'Could not detect zsh or bash. Pass -Shell zsh or -Shell bash.'
+        if (-not $IsWindows -and $detectedShell -in @('zsh', 'bash')) {
+            $Shell += $detectedShell
         }
+    }
+
+    $unixShells = @($Shell | Where-Object { $_ -in @('zsh', 'bash') })
+    if ($IsWindows -and $unixShells.Count -gt 0) {
+        throw 'Jax zsh/bash integration is supported on macOS and Linux. Use -Shell powershell on Windows.'
     }
 
     $sourceRoot = Join-Path $PSScriptRoot 'shell'
     $requiredFiles = @('Jax.ShellLauncher.ps1', 'Jax.ShellCompletion.ps1', 'jax.zsh', 'jax.bash')
-    foreach ($file in $requiredFiles) {
-        if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot $file) -PathType Leaf)) {
-            throw "Jax shell integration file is missing: $file"
-        }
-    }
-
-    $resolvedInstallRoot = [IO.Path]::GetFullPath($InstallRoot)
-    if ($resolvedInstallRoot -in @(
-            [IO.Path]::GetFullPath([IO.Path]::GetPathRoot($resolvedInstallRoot)),
-            [IO.Path]::GetFullPath($HOME)
-        )) {
-        throw "Refusing unsafe shell integration root: $resolvedInstallRoot"
-    }
-
-    if ($PSCmdlet.ShouldProcess($resolvedInstallRoot, 'Install Jax zsh/bash integration')) {
-        New-Item -ItemType Directory -Path $resolvedInstallRoot -Force | Out-Null
+    if ($unixShells.Count -gt 0) {
         foreach ($file in $requiredFiles) {
-            Copy-Item -LiteralPath (Join-Path $sourceRoot $file) `
-                -Destination (Join-Path $resolvedInstallRoot $file) -Force
+            if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot $file) -PathType Leaf)) {
+                throw "Jax shell integration file is missing: $file"
+            }
+        }
+
+        $resolvedInstallRoot = [IO.Path]::GetFullPath($InstallRoot)
+        if ($resolvedInstallRoot -in @(
+                [IO.Path]::GetFullPath([IO.Path]::GetPathRoot($resolvedInstallRoot)),
+                [IO.Path]::GetFullPath($HOME)
+            )) {
+            throw "Refusing unsafe shell integration root: $resolvedInstallRoot"
+        }
+
+        if ($PSCmdlet.ShouldProcess($resolvedInstallRoot, 'Install Jax zsh/bash integration')) {
+            New-Item -ItemType Directory -Path $resolvedInstallRoot -Force | Out-Null
+            foreach ($file in $requiredFiles) {
+                Copy-Item -LiteralPath (Join-Path $sourceRoot $file) `
+                    -Destination (Join-Path $resolvedInstallRoot $file) -Force
+            }
         }
     }
 
     $profiles = @{
+        powershell = [IO.Path]::GetFullPath($PowerShellProfilePath)
         zsh = [IO.Path]::GetFullPath($ZshProfilePath)
         bash = [IO.Path]::GetFullPath($BashProfilePath)
     }
     foreach ($shellName in @($Shell | Sort-Object -Unique)) {
         $profilePath = $profiles[$shellName]
-        $integrationPath = Join-Path $resolvedInstallRoot "jax.$shellName"
-        $quotedIntegrationPath = "'" + $integrationPath.Replace("'", "'`"`"'") + "'"
         $beginMarker = '# >>> jax CLI >>>'
         $endMarker = '# <<< jax CLI <<<'
-        $block = @"
+        $block = if ($shellName -eq 'powershell') {
+@'
+# >>> jax CLI >>>
+$jaxProfileModulePath = Get-Module -ListAvailable Jax |
+    Sort-Object Version -Descending |
+    Select-Object -First 1 -ExpandProperty Path
+if ([string]::IsNullOrWhiteSpace($jaxProfileModulePath)) {
+    $jaxSourceInstall = Join-Path $HOME '.jax/module/Jax.psd1'
+    if (Test-Path -LiteralPath $jaxSourceInstall -PathType Leaf) {
+        $jaxProfileModulePath = $jaxSourceInstall
+    }
+}
+if (-not [string]::IsNullOrWhiteSpace($jaxProfileModulePath)) {
+    Import-Module $jaxProfileModulePath -Global -Force -DisableNameChecking
+}
+# <<< jax CLI <<<
+'@
+        } else {
+            $integrationPath = Join-Path $resolvedInstallRoot "jax.$shellName"
+            $quotedIntegrationPath = "'" + $integrationPath.Replace("'", "'`"`"'") + "'"
+@"
 $beginMarker
 [ -f $quotedIntegrationPath ] && source $quotedIntegrationPath
 $endMarker
 "@
+        }
         $existing = if (Test-Path -LiteralPath $profilePath -PathType Leaf) {
             Get-Content -LiteralPath $profilePath -Raw
         } else {
@@ -197,7 +221,7 @@ $endMarker
         Write-Host "Jax $shellName integration registered in $profilePath" -ForegroundColor Green
     }
 
-    Write-Host 'Open a new shell, or source the updated profile now.' -ForegroundColor DarkGray
+    Write-Host 'Open a new shell, or dot-source the updated profile now.' -ForegroundColor DarkGray
 }
 
 function Invoke-Jax {

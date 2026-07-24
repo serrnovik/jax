@@ -64,6 +64,20 @@ Describe 'Standalone Jax packaging' {
             Should -Not -Throw
     }
 
+    It 'registers idempotent PowerShell profile integration' {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $powerShellProfile = Join-Path $script:testRoot 'profiles/profile.ps1'
+
+        Install-JaxShellIntegration -Shell powershell -PowerShellProfilePath $powerShellProfile
+        Install-JaxShellIntegration -Shell powershell -PowerShellProfilePath $powerShellProfile
+
+        $profileContent = Get-Content -LiteralPath $powerShellProfile -Raw
+        ([regex]::Matches($profileContent, '# >>> jax CLI >>>')).Count | Should -Be 1
+        $profileContent | Should -Match 'Get-Module -ListAvailable Jax'
+        $profileContent | Should -Match "Join-Path [`$]HOME '.jax/module/Jax\.psd1'"
+        $profileContent | Should -Match 'Import-Module [`$]jaxProfileModulePath -Global'
+    }
+
     It 'registers idempotent zsh and bash shell integration' -Skip:($IsWindows) {
         Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
         $shellRoot = Join-Path $script:testRoot 'shell-integration'

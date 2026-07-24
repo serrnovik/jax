@@ -12,6 +12,7 @@ Prerequisite: PowerShell 7.2+. The package manager installs Jax and its pinned
 ```powershell
 Install-PSResource Jax -Scope CurrentUser -TrustRepository
 Import-Module Jax
+Install-JaxShellIntegration -Shell powershell
 jax help
 ```
 
@@ -21,9 +22,10 @@ PowerShellGet v2 is also supported:
 Install-Module Jax -Scope CurrentUser -Repository PSGallery
 ```
 
-PowerShell module auto-loading makes `jax`, `jx`, and `jxs` available in later
-PowerShell sessions. Import the module explicitly when you want completion in
-the current session.
+The one-time shell-integration command imports the newest installed Jax module
+from your PowerShell profile, so `jax`, `jx`, `jxs`, and their completion are
+ready before the first Tab press in every new PowerShell session. Without it,
+module auto-loading makes commands available only after their first invocation.
 
 ### Use from zsh or bash
 
@@ -32,10 +34,10 @@ Import-Module Jax
 Install-JaxShellIntegration
 ```
 
-This installs thin, argument-safe `jax`, `jx`, and `jxs` functions into the
-detected zsh or bash profile. They route commands and dynamic tab completion to
-PowerShell, so Jax keeps one implementation. Open a new shell afterward. Pass
-`-Shell zsh,bash` to register both shells.
+By default this registers PowerShell plus the detected zsh or bash login shell.
+The thin, argument-safe `jax`, `jx`, and `jxs` functions route commands and
+dynamic tab completion to PowerShell, so Jax keeps one implementation. Open a
+new shell afterward. Pass `-Shell powershell,zsh,bash` to register all three.
 
 ## Start a new consumer repository
 

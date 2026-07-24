@@ -16,6 +16,7 @@ tasks. Keep Jax's runtime separate from the consumer repository.
    ```powershell
    Install-PSResource Jax -Scope CurrentUser -TrustRepository
    Import-Module Jax
+   Install-JaxShellIntegration -Shell powershell
    ```
 
 3. Use `Install-Module Jax -Scope CurrentUser -Repository PSGallery` only when
@@ -23,8 +24,10 @@ tasks. Keep Jax's runtime separate from the consumer repository.
 4. Update with `Update-PSResource Jax -Scope CurrentUser -Repository PSGallery
    -TrustRepository`. Do not clone Jax into a consumer repository or execute an
    unpinned remote installation script.
-5. zsh/bash users can run `Install-JaxShellIntegration` once. The installed
-   wrapper safely forwards commands and dynamic completion to `pwsh`.
+5. `Install-JaxShellIntegration -Shell powershell` makes completion available
+   before the first command in clean PowerShell sessions. zsh/bash users can
+   run `Install-JaxShellIntegration` without `-Shell`; it also installs the
+   argument-safe wrapper and dynamic completion for the detected login shell.
 
 ## Initialize a consumer repository
 
