@@ -35,6 +35,8 @@ Install-JaxShellIntegration
 ```
 
 By default this registers PowerShell plus the detected zsh or bash login shell.
+When `SHELL` is unavailable to a non-interactive installer, it uses the platform
+default (zsh on macOS, bash on Linux).
 The thin, argument-safe `jax`, `jx`, and `jxs` functions route commands and
 dynamic tab completion to PowerShell, so Jax keeps one implementation. Open a
 new shell afterward. Pass `-Shell powershell,zsh,bash` to register all three.

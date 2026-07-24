@@ -146,6 +146,12 @@ function Install-JaxShellIntegration {
         $detectedShell = [IO.Path]::GetFileName([string]$env:SHELL)
         if (-not $IsWindows -and $detectedShell -in @('zsh', 'bash')) {
             $Shell += $detectedShell
+        } elseif ($IsMacOS) {
+            # Non-interactive installers may not inherit SHELL. zsh is the
+            # macOS default and should still work on the next terminal launch.
+            $Shell += 'zsh'
+        } elseif ($IsLinux) {
+            $Shell += 'bash'
         }
     }
 

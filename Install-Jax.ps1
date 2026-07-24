@@ -168,7 +168,7 @@ if ($SkipProfile) {
     Write-Host "Import with: $activateCommand" -ForegroundColor DarkGray
 } else {
     Write-Host 'Jax is active now when this script was invoked directly in the current PowerShell.' -ForegroundColor DarkGray
-    Write-Host 'New PowerShell and detected zsh/bash sessions will load this source installation automatically.' -ForegroundColor DarkGray
+    Write-Host 'New PowerShell and detected or platform-default zsh/bash sessions will load this source installation automatically.' -ForegroundColor DarkGray
     Write-Host 'If this installer was launched through a child `pwsh -File` process, activate its parent with:' -ForegroundColor DarkGray
     Write-Host "  $activateCommand" -ForegroundColor DarkGray
 }

@@ -12,7 +12,8 @@ Use `Install-Module Jax -Scope CurrentUser -Repository PSGallery` when
 PowerShellGet v2 is the available package manager.
 
 For zsh or bash, run `Install-JaxShellIntegration` without `-Shell`; it
-registers PowerShell plus the detected login shell. The generated shell
+registers PowerShell plus the detected login shell, or the platform default
+when `SHELL` is unavailable (zsh on macOS, bash on Linux). The generated shell
 functions route arguments and completion through `pwsh`; they do not duplicate
 the Jax runtime and do not need a `PATH` entry.
 

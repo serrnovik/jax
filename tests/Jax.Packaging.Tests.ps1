@@ -99,6 +99,34 @@ Describe 'Standalone Jax packaging' {
             Should -Be 1
     }
 
+    It 'uses the platform default Unix shell when SHELL is unavailable' -Skip:($IsWindows) {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $shellRoot = Join-Path $script:testRoot 'default-shell-integration'
+        $powerShellProfile = Join-Path $script:testRoot 'default-shell-profiles/profile.ps1'
+        $zshProfile = Join-Path $script:testRoot 'default-shell-profiles/.zshrc'
+        $bashProfile = Join-Path $script:testRoot 'default-shell-profiles/.bashrc'
+        $previousShell = $env:SHELL
+        try {
+            Remove-Item Env:SHELL -ErrorAction SilentlyContinue
+            Install-JaxShellIntegration -InstallRoot $shellRoot `
+                -PowerShellProfilePath $powerShellProfile `
+                -ZshProfilePath $zshProfile -BashProfilePath $bashProfile
+        } finally {
+            if ($null -eq $previousShell) {
+                Remove-Item Env:SHELL -ErrorAction SilentlyContinue
+            } else {
+                $env:SHELL = $previousShell
+            }
+        }
+
+        Test-Path -LiteralPath $powerShellProfile | Should -BeTrue
+        if ($IsMacOS) {
+            Test-Path -LiteralPath $zshProfile | Should -BeTrue
+        } else {
+            Test-Path -LiteralPath $bashProfile | Should -BeTrue
+        }
+    }
+
     It 'pins source installs in PowerShell, zsh, and bash profiles' -Skip:($IsWindows) {
         Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
         $shellRoot = Join-Path $script:testRoot 'source-shell-integration'
