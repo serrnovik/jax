@@ -14,7 +14,13 @@ PowerShellGet v2 is the available package manager.
 For zsh or bash, run `Install-JaxShellIntegration` without `-Shell`; it
 registers PowerShell plus the detected login shell. The generated shell
 functions route arguments and completion through `pwsh`; they do not duplicate
-the Jax runtime.
+the Jax runtime and do not need a `PATH` entry.
+
+For local Jax development, invoke `./Install-Jax.ps1` directly from a
+PowerShell session. It installs and pins the source build in PowerShell and the
+detected zsh/bash shell. A parent shell cannot be modified by a child
+`pwsh -File` process, so use the import command printed by the installer when
+you launch it that way.
 
 ## Add Jax to a repository
 

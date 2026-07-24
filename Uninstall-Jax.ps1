@@ -1,7 +1,9 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
 param (
     [string] $InstallRoot = (Join-Path $HOME '.jax/module'),
-    [string] $ProfilePath = $PROFILE.CurrentUserAllHosts
+    [string] $ProfilePath = $PROFILE.CurrentUserCurrentHost,
+    [string] $ZshProfilePath = (Join-Path $HOME '.zshrc'),
+    [string] $BashProfilePath = (Join-Path $HOME '.bashrc')
 )
 
 Set-StrictMode -Version Latest
@@ -26,12 +28,14 @@ if ((Test-Path -LiteralPath $installRootResolved) -and
      -not (Test-Path -LiteralPath $installationMetadataPath -PathType Leaf))) {
     throw "Refusing to remove a directory that is not a Jax installation: $installRootResolved"
 }
-if (Test-Path -LiteralPath $ProfilePath -PathType Leaf) {
-    $existing = Get-Content -LiteralPath $ProfilePath -Raw
-    $pattern = '(?ms)^# >>> jax CLI >>>.*?^# <<< jax CLI <<<\r?\n?'
-    $updated = [regex]::Replace($existing, $pattern, '').TrimEnd()
-    if ($updated -ne $existing -and $PSCmdlet.ShouldProcess($ProfilePath, 'Remove the Jax profile block')) {
-        Set-Content -LiteralPath $ProfilePath -Value $updated -Encoding utf8
+foreach ($shellProfilePath in @($ProfilePath, $ZshProfilePath, $BashProfilePath) | Select-Object -Unique) {
+    if (Test-Path -LiteralPath $shellProfilePath -PathType Leaf) {
+        $existing = Get-Content -LiteralPath $shellProfilePath -Raw
+        $pattern = '(?ms)^# >>> jax CLI >>>.*?^# <<< jax CLI <<<\r?\n?'
+        $updated = [regex]::Replace($existing, $pattern, '').TrimEnd()
+        if ($updated -ne $existing -and $PSCmdlet.ShouldProcess($shellProfilePath, 'Remove the Jax profile block')) {
+            Set-Content -LiteralPath $shellProfilePath -Value $updated -Encoding utf8
+        }
     }
 }
 

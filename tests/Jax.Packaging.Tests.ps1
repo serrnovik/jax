@@ -21,8 +21,9 @@ Describe 'Standalone Jax packaging' {
 
     It 'installs an allowlisted runtime and updates the profile idempotently' {
         $installer = Join-Path $script:sourceRoot 'Install-Jax.ps1'
-        $installOutput = & $installer -InstallRoot $script:installRoot -ProfilePath $script:profilePath *>&1 | Out-String
-        & $installer -InstallRoot $script:installRoot -ProfilePath $script:profilePath
+        $installOutput = & $installer -InstallRoot $script:installRoot -ProfilePath $script:profilePath `
+            -Shell powershell *>&1 | Out-String
+        & $installer -InstallRoot $script:installRoot -ProfilePath $script:profilePath -Shell powershell
 
         $LASTEXITCODE | Should -BeIn @(0, $null)
         Test-Path -LiteralPath (Join-Path $script:installRoot 'Jax.psd1') | Should -BeTrue
@@ -39,6 +40,8 @@ Describe 'Standalone Jax packaging' {
         $profileContent = Get-Content -LiteralPath $script:profilePath -Raw
         ([regex]::Matches($profileContent, '# >>> jax CLI >>>')).Count | Should -Be 1
         $installOutput | Should -Match "Import-Module '.*Jax\.psd1' -Global"
+        $profileContent | Should -Match ([regex]::Escape((Join-Path $script:installRoot 'Jax.psd1')))
+        $profileContent | Should -Not -Match 'Get-Module -ListAvailable Jax'
         $profileContent | Should -Not -Match 'Register-JaxCompletion'
     }
 
@@ -94,6 +97,26 @@ Describe 'Standalone Jax packaging' {
             Should -Be 1
         ([regex]::Matches((Get-Content -LiteralPath $bashProfile -Raw), '# >>> jax CLI >>>')).Count |
             Should -Be 1
+    }
+
+    It 'pins source installs in PowerShell, zsh, and bash profiles' -Skip:($IsWindows) {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $shellRoot = Join-Path $script:testRoot 'source-shell-integration'
+        $powerShellProfile = Join-Path $script:testRoot 'source-profiles/profile.ps1'
+        $zshProfile = Join-Path $script:testRoot 'source-profiles/.zshrc'
+        $bashProfile = Join-Path $script:testRoot 'source-profiles/.bashrc'
+        $modulePath = Join-Path $script:installRoot 'Jax.psd1'
+
+        Install-JaxShellIntegration -Shell powershell, zsh, bash -ModulePath $modulePath `
+            -InstallRoot $shellRoot -PowerShellProfilePath $powerShellProfile `
+            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile
+
+        (Get-Content -LiteralPath $powerShellProfile -Raw) |
+            Should -Match ([regex]::Escape($modulePath))
+        (Get-Content -LiteralPath $zshProfile -Raw) |
+            Should -Match 'export JAX_MODULE_PATH='
+        (Get-Content -LiteralPath $bashProfile -Raw) |
+            Should -Match 'export JAX_MODULE_PATH='
     }
 
     It 'routes zsh and bash arguments through the installed PowerShell module' `
@@ -313,7 +336,9 @@ jax:
         New-Item -ItemType Directory -Path $unrelatedRoot -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $unrelatedRoot 'keep.txt') -Value 'keep'
 
-        { & $uninstaller -InstallRoot $unrelatedRoot -ProfilePath $script:profilePath -Confirm:$false } |
+        { & $uninstaller -InstallRoot $unrelatedRoot -ProfilePath $script:profilePath `
+                -ZshProfilePath (Join-Path $script:testRoot '.zshrc') `
+                -BashProfilePath (Join-Path $script:testRoot '.bashrc') -Confirm:$false } |
             Should -Throw '*not a Jax installation*'
         Test-Path -LiteralPath (Join-Path $unrelatedRoot 'keep.txt') | Should -BeTrue
     }
@@ -321,16 +346,25 @@ jax:
     It 'refuses to uninstall the Jax source checkout' {
         $uninstaller = Join-Path $script:sourceRoot 'Uninstall-Jax.ps1'
 
-        { & $uninstaller -InstallRoot $script:sourceRoot -ProfilePath $script:profilePath -Confirm:$false } |
+        { & $uninstaller -InstallRoot $script:sourceRoot -ProfilePath $script:profilePath `
+                -ZshProfilePath (Join-Path $script:testRoot '.zshrc') `
+                -BashProfilePath (Join-Path $script:testRoot '.bashrc') -Confirm:$false } |
             Should -Throw '*not a Jax installation*'
         Test-Path -LiteralPath (Join-Path $script:sourceRoot 'Jax.psd1') | Should -BeTrue
     }
 
     It 'uninstalls the module and removes only its marked profile block' {
         $uninstaller = Join-Path $script:sourceRoot 'Uninstall-Jax.ps1'
-        & $uninstaller -InstallRoot $script:installRoot -ProfilePath $script:profilePath -Confirm:$false
+        $zshProfile = Join-Path $script:testRoot '.zshrc'
+        $bashProfile = Join-Path $script:testRoot '.bashrc'
+        Set-Content -LiteralPath $zshProfile -Value "# >>> jax CLI >>>`nsource jax.zsh`n# <<< jax CLI <<<"
+        Set-Content -LiteralPath $bashProfile -Value "# >>> jax CLI >>>`nsource jax.bash`n# <<< jax CLI <<<"
+        & $uninstaller -InstallRoot $script:installRoot -ProfilePath $script:profilePath `
+            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile -Confirm:$false
 
         Test-Path -LiteralPath $script:installRoot | Should -BeFalse
         (Get-Content -LiteralPath $script:profilePath -Raw) | Should -Not -Match '# >>> jax CLI >>>'
+        (Get-Content -LiteralPath $zshProfile -Raw) | Should -Not -Match '# >>> jax CLI >>>'
+        (Get-Content -LiteralPath $bashProfile -Raw) | Should -Not -Match '# >>> jax CLI >>>'
     }
 }

@@ -119,6 +119,9 @@ function Install-JaxShellIntegration {
     param(
         [ValidateSet('powershell', 'zsh', 'bash')]
         [string[]] $Shell,
+        # Source installs pass their exact manifest so every shell uses the
+        # checkout build instead of a possibly newer Gallery installation.
+        [string] $ModulePath,
         [string] $InstallRoot = (Join-Path $HOME '.jax/shell'),
         # CurrentUserCurrentHost loads after the all-hosts profile, so later
         # profile commands cannot silently replace the jax/jx aliases.
@@ -126,6 +129,17 @@ function Install-JaxShellIntegration {
         [string] $ZshProfilePath = (Join-Path $HOME '.zshrc'),
         [string] $BashProfilePath = (Join-Path $HOME '.bashrc')
     )
+
+    $resolvedModulePath = $null
+    if (-not [string]::IsNullOrWhiteSpace($ModulePath)) {
+        $resolvedModulePath = [IO.Path]::GetFullPath($ModulePath)
+        if (Test-Path -LiteralPath $resolvedModulePath -PathType Container) {
+            $resolvedModulePath = Join-Path $resolvedModulePath 'Jax.psd1'
+        }
+        if (-not (Test-Path -LiteralPath $resolvedModulePath -PathType Leaf)) {
+            throw "Jax module manifest is missing: $resolvedModulePath"
+        }
+    }
 
     if ($null -eq $Shell -or $Shell.Count -eq 0) {
         $Shell = @('powershell')
@@ -176,6 +190,17 @@ function Install-JaxShellIntegration {
         $beginMarker = '# >>> jax CLI >>>'
         $endMarker = '# <<< jax CLI <<<'
         $block = if ($shellName -eq 'powershell') {
+            if ($null -ne $resolvedModulePath) {
+                $escapedModulePath = $resolvedModulePath.Replace("'", "''")
+@"
+# >>> jax CLI >>>
+`$jaxProfileModulePath = '$escapedModulePath'
+if (Test-Path -LiteralPath `$jaxProfileModulePath -PathType Leaf) {
+    Import-Module `$jaxProfileModulePath -Global -Force -DisableNameChecking
+}
+# <<< jax CLI <<<
+"@
+            } else {
 @'
 # >>> jax CLI >>>
 $jaxProfileModulePath = Get-Module -ListAvailable Jax |
@@ -192,12 +217,18 @@ if (-not [string]::IsNullOrWhiteSpace($jaxProfileModulePath)) {
 }
 # <<< jax CLI <<<
 '@
+            }
         } else {
             $integrationPath = Join-Path $resolvedInstallRoot "jax.$shellName"
             $quotedIntegrationPath = "'" + $integrationPath.Replace("'", "'`"`"'") + "'"
+            $modulePathLine = ''
+            if ($null -ne $resolvedModulePath) {
+                $quotedModulePath = "'" + $resolvedModulePath.Replace("'", "'`"`"'") + "'"
+                $modulePathLine = "export JAX_MODULE_PATH=$quotedModulePath`n"
+            }
 @"
 $beginMarker
-[ -f $quotedIntegrationPath ] && source $quotedIntegrationPath
+${modulePathLine}[ -f $quotedIntegrationPath ] && source $quotedIntegrationPath
 $endMarker
 "@
         }

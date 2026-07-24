@@ -22,7 +22,6 @@ $rules = [ordered]@{
     'consumer product name 2' = ('rip' + 'icts')
     'consumer product name 3' = ('pronounce' + 'fit')
     'personal shorthand comment' = '\[' + 'sno\]'
-    'personal author name' = ('Sergey' + '\s+Novikov')
     'repository-only customization' = ('snow' + '[- ]customizations')
     'legacy personal codename' = '\b' + ('b' + 'en') + '\b|' + ('bob' + 'oss')
     'internal build topology' = '/opt/buildagent|teamcity-hel-|MainVcs|SecondaryVcs'

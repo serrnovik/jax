@@ -1,9 +1,9 @@
 @{
     RootModule = 'Jax.psm1'
-    ModuleVersion = '0.1.4'
+    ModuleVersion = '0.1.5'
     GUID = '1ea40670-b2f8-4daa-bc38-724f570ee4d9'
-    Author = 'Sergey Novik <sergey@novik.fr>'
-    Copyright = 'Copyright 2026 Sergey Novik'
+    Author = 'Sergey Novikov <sergey@novik.fr>'
+    Copyright = 'Copyright 2026 Sergey Novikov'
     Description = 'Repository-independent PowerShell task and environment runner.'
     PowerShellVersion = '7.2'
     RequiredModules = @(
@@ -27,7 +27,7 @@
             Tags = @('automation', 'cli', 'powershell', 'psake', 'tasks')
             ProjectUri = 'https://github.com/serrnovik/jax'
             LicenseUri = 'https://github.com/serrnovik/jax/blob/main/LICENSE'
-            ReleaseNotes = 'Loads Jax after other PowerShell profile layers so jx completion remains active.'
+            ReleaseNotes = 'Activates source installs immediately and configures PowerShell, zsh, and bash integration automatically.'
         }
     }
 }

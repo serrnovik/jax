@@ -38,6 +38,8 @@ By default this registers PowerShell plus the detected zsh or bash login shell.
 The thin, argument-safe `jax`, `jx`, and `jxs` functions route commands and
 dynamic tab completion to PowerShell, so Jax keeps one implementation. Open a
 new shell afterward. Pass `-Shell powershell,zsh,bash` to register all three.
+The wrappers are sourced as shell functions from `~/.jax/shell`; they do not
+need to be added to `PATH`.
 
 ## Start a new consumer repository
 
@@ -125,9 +127,11 @@ Uninstall-PSResource Jax
 Uninstall-Module Jax
 ```
 
-Source contributors can still run `Install-Jax.ps1` from a checkout to test an
-unpublished build under `~/.jax/module`; that is a development workflow, not
-the public installation path.
+Source contributors can run `./Install-Jax.ps1` directly in PowerShell to test
+an unpublished build under `~/.jax/module`. It activates that build in the
+current PowerShell and persistently pins PowerShell plus the detected zsh/bash
+shell to it. When launched through a child `pwsh -File` process, run the
+printed `Import-Module` command once in the parent process.
 
 ## Development
 
@@ -136,7 +140,7 @@ pwsh -NoProfile -File ./tests/Invoke-Tests.ps1
 pwsh -NoProfile -File ./tests/Test-PublicSource.ps1
 ```
 
-The distributable is defined by `distribution-manifest.psd1`; tests and development assets are not installed. Bundled psake 4.9.1 retains its upstream MIT license in `psake/LICENSE`.
+The distributable is defined by `distribution-manifest.psd1`; tests and development assets are not installed. Bundled psake 4.9.1 retains its upstream MIT license in `psake/LICENSE`. It is Jax's compatibility task runner and keeps clean and offline installations deterministic; removing it would break existing psakefile-based repositories.
 
 ## License and security
 

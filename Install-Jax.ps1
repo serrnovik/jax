@@ -2,7 +2,9 @@
 param (
     [string] $InstallRoot = (Join-Path $HOME '.jax/module'),
     [switch] $SkipProfile,
-    [string] $ProfilePath = $PROFILE.CurrentUserAllHosts
+    [string] $ProfilePath = $PROFILE.CurrentUserCurrentHost,
+    [ValidateSet('powershell', 'zsh', 'bash')]
+    [string[]] $Shell
 )
 
 Set-StrictMode -Version Latest
@@ -145,44 +147,28 @@ try {
     throw
 }
 
+$installedManifest = Join-Path $installRootResolved 'Jax.psd1'
+Import-Module $installedManifest -Global -Force -DisableNameChecking -ErrorAction Stop
+
 if (-not $SkipProfile) {
-    $profileDir = Split-Path -Parent $ProfilePath
-    if (-not (Test-Path -LiteralPath $profileDir -PathType Container)) {
-        New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+    $integrationParameters = @{
+        ModulePath = $installedManifest
+        PowerShellProfilePath = $ProfilePath
     }
-    $existing = if (Test-Path -LiteralPath $ProfilePath -PathType Leaf) {
-        Get-Content -LiteralPath $ProfilePath -Raw
-    } else {
-        ''
+    if ($null -ne $Shell -and $Shell.Count -gt 0) {
+        $integrationParameters.Shell = $Shell
     }
-    $beginMarker = '# >>> jax CLI >>>'
-    $endMarker = '# <<< jax CLI <<<'
-    $pattern = '(?ms)^' + [regex]::Escape($beginMarker) + '.*?^' + [regex]::Escape($endMarker) + '\r?\n?'
-    $withoutOldBlock = [regex]::Replace($existing, $pattern, '').TrimEnd()
-    $escapedModulePath = (Join-Path $installRootResolved 'Jax.psd1').Replace("'", "''")
-    $block = @"
-$beginMarker
-`$jaxModulePath = '$escapedModulePath'
-if (Test-Path -LiteralPath `$jaxModulePath) {
-    Import-Module `$jaxModulePath -Global -Force -DisableNameChecking
-}
-$endMarker
-"@
-    $profileContent = if ([string]::IsNullOrWhiteSpace($withoutOldBlock)) { $block } else { "$withoutOldBlock`n`n$block" }
-    Set-Content -LiteralPath $ProfilePath -Value $profileContent -Encoding utf8
+    Install-JaxShellIntegration @integrationParameters
 }
 
 Write-Host ("Jax {0} installed to {1}" -f $manifest.Version, $installRootResolved) -ForegroundColor Green
-$installedManifest = Join-Path $installRootResolved 'Jax.psd1'
 $escapedInstalledManifest = $installedManifest.Replace("'", "''")
 $activateCommand = "Import-Module '$escapedInstalledManifest' -Global -Force -DisableNameChecking"
 if ($SkipProfile) {
     Write-Host "Import with: $activateCommand" -ForegroundColor DarkGray
 } else {
-    Write-Host 'Open a new PowerShell session, or activate Jax now in your current PowerShell session:' -ForegroundColor DarkGray
+    Write-Host 'Jax is active now when this script was invoked directly in the current PowerShell.' -ForegroundColor DarkGray
+    Write-Host 'New PowerShell and detected zsh/bash sessions will load this source installation automatically.' -ForegroundColor DarkGray
+    Write-Host 'If this installer was launched through a child `pwsh -File` process, activate its parent with:' -ForegroundColor DarkGray
     Write-Host "  $activateCommand" -ForegroundColor DarkGray
-}
-if (-not $IsWindows -and [IO.Path]::GetFileName([string]$env:SHELL) -in @('zsh', 'bash')) {
-    Write-Host 'To enable Jax in zsh/bash after activation:' -ForegroundColor DarkGray
-    Write-Host '  Install-JaxShellIntegration' -ForegroundColor DarkGray
 }

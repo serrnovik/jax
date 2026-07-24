@@ -38,6 +38,20 @@ history:
 pwsh -NoProfile -File devops/subtree-ship/Ship-Subtree.ps1 jax
 ```
 
+From the monorepo, the normal release entry point ships the current branch,
+validates the exact dedicated checkout, publishes the same version, and pushes
+its `v<version>` tag:
+
+```powershell
+jx -e operations/jax run -o ReleaseJax
+```
+
+The explicit two-task form is also supported:
+
+```powershell
+jx -e operations/jax run -o ShipSubtree,PublishJax
+```
+
 ## Validate and stage a module package
 
 From the standalone Jax checkout:
