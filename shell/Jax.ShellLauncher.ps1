@@ -12,16 +12,19 @@ function Resolve-JaxShellModuleManifest {
         }
     }
 
+    # A source install is an explicit local override. Prefer it to a Gallery
+    # module even when a zsh/bash wrapper was sourced without its generated
+    # profile block.
+    $sourceInstall = Join-Path $HOME '.jax/module/Jax.psd1'
+    if (Test-Path -LiteralPath $sourceInstall -PathType Leaf) {
+        return $sourceInstall
+    }
+
     $available = Get-Module -ListAvailable -Name Jax |
         Sort-Object Version -Descending |
         Select-Object -First 1
     if ($null -ne $available) {
         return $available.Path
-    }
-
-    $sourceInstall = Join-Path $HOME '.jax/module/Jax.psd1'
-    if (Test-Path -LiteralPath $sourceInstall -PathType Leaf) {
-        return $sourceInstall
     }
 
     throw 'Jax is not installed. Run: Install-PSResource Jax -Scope CurrentUser -TrustRepository'

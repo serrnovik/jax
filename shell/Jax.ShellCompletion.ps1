@@ -17,17 +17,17 @@ try {
         }
     }
     if ([string]::IsNullOrWhiteSpace($manifestPath)) {
+        $sourceInstall = Join-Path $HOME '.jax/module/Jax.psd1'
+        if (Test-Path -LiteralPath $sourceInstall -PathType Leaf) {
+            $manifestPath = $sourceInstall
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($manifestPath)) {
         $available = Get-Module -ListAvailable -Name Jax |
             Sort-Object Version -Descending |
             Select-Object -First 1
         if ($null -ne $available) {
             $manifestPath = $available.Path
-        }
-    }
-    if ([string]::IsNullOrWhiteSpace($manifestPath)) {
-        $sourceInstall = Join-Path $HOME '.jax/module/Jax.psd1'
-        if (Test-Path -LiteralPath $sourceInstall -PathType Leaf) {
-            $manifestPath = $sourceInstall
         }
     }
     if ([string]::IsNullOrWhiteSpace($manifestPath)) {

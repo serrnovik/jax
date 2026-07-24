@@ -179,6 +179,64 @@ Describe 'Standalone Jax packaging' {
         $bashOutput | Should -Match 'Target repository:'
     }
 
+    It 'prefers a local source install when shell profile pinning is absent' -Skip:($IsWindows) {
+        $fakeHome = Join-Path $script:testRoot 'shell-home'
+        $sourceInstall = Join-Path $fakeHome '.jax/module'
+        $galleryRoot = Join-Path $script:testRoot 'fake-gallery/Jax/99.0.0'
+        New-Item -ItemType Directory -Path (Split-Path -Parent $sourceInstall) -Force | Out-Null
+        Copy-Item -LiteralPath $script:installRoot -Destination $sourceInstall -Recurse
+        New-Item -ItemType Directory -Path (Split-Path -Parent $galleryRoot) -Force | Out-Null
+        Copy-Item -LiteralPath $script:installRoot -Destination $galleryRoot -Recurse
+        $galleryManifest = Join-Path $galleryRoot 'Jax.psd1'
+        (Get-Content -LiteralPath $galleryManifest -Raw) -replace
+            "(?m)^(\s*ModuleVersion\s*=\s*)'[^']+'", "`$1'99.0.0'" |
+            Set-Content -LiteralPath $galleryManifest -Encoding utf8
+        Remove-Item -LiteralPath (Join-Path $galleryRoot 'jax.auto-completion.ps1')
+
+        $previousHome = $env:HOME
+        $previousModulePath = $env:JAX_MODULE_PATH
+        $previousPSModulePath = $env:PSModulePath
+        try {
+            $env:HOME = $fakeHome
+            Remove-Item Env:JAX_MODULE_PATH -ErrorAction SilentlyContinue
+            $env:PSModulePath = "$($script:testRoot)/fake-gallery$([IO.Path]::PathSeparator)$previousPSModulePath"
+            $output = & pwsh -NoLogo -NoProfile `
+                -File (Join-Path $script:installRoot 'shell/Jax.ShellLauncher.ps1') `
+                -C $script:consumerRoot info -q 2>&1 | Out-String
+            $exitCode = $LASTEXITCODE
+            $completionOutput = & pwsh -NoLogo -NoProfile `
+                -File (Join-Path $script:installRoot 'shell/Jax.ShellCompletion.ps1') `
+                'jax -' 5
+        } finally {
+            $env:HOME = $previousHome
+            $env:PSModulePath = $previousPSModulePath
+            if ($null -eq $previousModulePath) {
+                Remove-Item Env:JAX_MODULE_PATH -ErrorAction SilentlyContinue
+            } else {
+                $env:JAX_MODULE_PATH = $previousModulePath
+            }
+        }
+
+        $exitCode | Should -Be 0 -Because $output
+        $output | Should -Match ([regex]::Escape("Runtime root: $sourceInstall"))
+        $output | Should -Not -Match 'Version: 99\.0\.0'
+        @($completionOutput) | Should -Contain '-env'
+    }
+
+    It 'registers zsh completion even when compinit runs after the wrapper' `
+        -Skip:($IsWindows -or $null -eq (Get-Command zsh -ErrorAction SilentlyContinue)) {
+        $wrapper = Join-Path $script:installRoot 'shell/jax.zsh'
+        & zsh -fc @'
+source "$1"
+autoload -Uz compinit
+compinit
+_jax_register_zsh_completion
+[[ "${_comps[jx]-}" == "_jax_zsh_completion" ]]
+'@ jax-test $wrapper
+
+        $LASTEXITCODE | Should -Be 0
+    }
+
     It 'provides dynamic completion to non-PowerShell shell bridges' -Skip:($IsWindows) {
         $completionConsumer = Join-Path $script:testRoot 'completion-consumer'
         New-Item -ItemType Directory -Path $completionConsumer -Force | Out-Null

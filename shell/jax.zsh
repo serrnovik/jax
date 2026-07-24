@@ -27,6 +27,20 @@ _jax_zsh_completion() {
     (( ${#candidates[@]} > 0 )) && compadd -Q -- "${candidates[@]}"
 }
 
-if (( $+functions[compdef] )); then
+_jax_register_zsh_completion() {
+    (( $+functions[compdef] )) || return 0
     compdef _jax_zsh_completion jax jx jxs
+    if (( $+functions[add-zsh-hook] )); then
+        add-zsh-hook -d precmd _jax_register_zsh_completion 2>/dev/null
+    fi
+}
+
+if (( $+functions[compdef] )); then
+    _jax_register_zsh_completion
+else
+    # Some frameworks run compinit after user profile fragments. Register on
+    # the first prompt as well so their later compinit cannot leave Jax on the
+    # filesystem fallback completer.
+    autoload -Uz add-zsh-hook
+    add-zsh-hook precmd _jax_register_zsh_completion
 fi
