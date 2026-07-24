@@ -1,0 +1,31 @@
+Jax.psd1
+  s_67cf119326a6f8::t_b68b3cf7447775 3
+VERSION
+  s_67cf119326a6f8::t_b8791233cdc381 1
+distribution-manifest.psd1
+  s_67cf119326a6f8::t_b95698710f2e87 2
+shell/Jax.ShellCompletion.ps1
+  s_67cf119326a6f8::t_2ff917b5cabccc 19-24
+shell/Jax.ShellLauncher.ps1
+  s_67cf119326a6f8::t_3b745e031a7907 15-22
+shell/jax.zsh
+  s_67cf119326a6f8::t_41cd29252f1604 30-31,33-45
+tests/Jax.Packaging.Tests.ps1
+  s_67cf119326a6f8::t_700b07e6c2ede6 182-239
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "682f02adfa58f181e2cb071a172bd23bd4315543",
+  "prompts": {},
+  "sessions": {
+    "s_67cf119326a6f8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3f0e33e8-70e8-43ed-bc6e-0ae2c723372c",
+        "model": "claude-fable-5"
+      },
+      "human_author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
