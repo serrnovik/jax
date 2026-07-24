@@ -1,6 +1,6 @@
 @{
     RootModule = 'Jax.psm1'
-    ModuleVersion = '0.1.6'
+    ModuleVersion = '0.1.7'
     GUID = '1ea40670-b2f8-4daa-bc38-724f570ee4d9'
     Author = 'Sergey Novikov <sergey@novik.fr>'
     Copyright = 'Copyright 2026 Sergey Novikov'
@@ -27,7 +27,7 @@
             Tags = @('automation', 'cli', 'powershell', 'psake', 'tasks')
             ProjectUri = 'https://github.com/serrnovik/jax'
             LicenseUri = 'https://github.com/serrnovik/jax/blob/main/LICENSE'
-            ReleaseNotes = 'Falls back to the platform-default Unix shell when non-interactive installers do not inherit SHELL.'
+            ReleaseNotes = 'Ensures shell startup loads only the selected Jax module when older Gallery or source integrations coexist.'
         }
     }
 }

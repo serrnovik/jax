@@ -42,6 +42,7 @@ Describe 'Standalone Jax packaging' {
         $installOutput | Should -Match "Import-Module '.*Jax\.psd1' -Global"
         $profileContent | Should -Match ([regex]::Escape((Join-Path $script:installRoot 'Jax.psd1')))
         $profileContent | Should -Not -Match 'Get-Module -ListAvailable Jax'
+        $profileContent | Should -Match 'Remove-Module -Force'
         $profileContent | Should -Not -Match 'Register-JaxCompletion'
     }
 
@@ -78,6 +79,7 @@ Describe 'Standalone Jax packaging' {
         ([regex]::Matches($profileContent, '# >>> jax CLI >>>')).Count | Should -Be 1
         $profileContent | Should -Match 'Get-Module -ListAvailable Jax'
         $profileContent | Should -Match "Join-Path [`$]HOME '.jax/module/Jax\.psd1'"
+        $profileContent | Should -Match 'Remove-Module -Force'
         $profileContent | Should -Match 'Import-Module [`$]jaxProfileModulePath -Global'
     }
 

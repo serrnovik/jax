@@ -148,6 +148,7 @@ try {
 }
 
 $installedManifest = Join-Path $installRootResolved 'Jax.psd1'
+Get-Module Jax | Remove-Module -Force -ErrorAction SilentlyContinue
 Import-Module $installedManifest -Global -Force -DisableNameChecking -ErrorAction Stop
 
 if (-not $SkipProfile) {

@@ -202,6 +202,9 @@ function Install-JaxShellIntegration {
 # >>> jax CLI >>>
 `$jaxProfileModulePath = '$escapedModulePath'
 if (Test-Path -LiteralPath `$jaxProfileModulePath -PathType Leaf) {
+    Get-Module Jax |
+        Where-Object Path -NE `$jaxProfileModulePath |
+        Remove-Module -Force
     Import-Module `$jaxProfileModulePath -Global -Force -DisableNameChecking
 }
 # <<< jax CLI <<<
@@ -219,6 +222,9 @@ if ([string]::IsNullOrWhiteSpace($jaxProfileModulePath)) {
     }
 }
 if (-not [string]::IsNullOrWhiteSpace($jaxProfileModulePath)) {
+    Get-Module Jax |
+        Where-Object Path -NE $jaxProfileModulePath |
+        Remove-Module -Force
     Import-Module $jaxProfileModulePath -Global -Force -DisableNameChecking
 }
 # <<< jax CLI <<<
