@@ -3,7 +3,8 @@ param (
     [string] $InstallRoot = (Join-Path $HOME '.jax/module'),
     [string] $ProfilePath = $PROFILE.CurrentUserCurrentHost,
     [string] $ZshProfilePath = (Join-Path $HOME '.zshrc'),
-    [string] $BashProfilePath = (Join-Path $HOME '.bashrc')
+    [string] $BashProfilePath = (Join-Path $HOME '.bashrc'),
+    [string] $BashLoginProfilePath
 )
 
 Set-StrictMode -Version Latest
@@ -28,7 +29,13 @@ if ((Test-Path -LiteralPath $installRootResolved) -and
      -not (Test-Path -LiteralPath $installationMetadataPath -PathType Leaf))) {
     throw "Refusing to remove a directory that is not a Jax installation: $installRootResolved"
 }
-foreach ($shellProfilePath in @($ProfilePath, $ZshProfilePath, $BashProfilePath) | Select-Object -Unique) {
+$profilePaths = @($ProfilePath, $ZshProfilePath, $BashProfilePath)
+if (-not [string]::IsNullOrWhiteSpace($BashLoginProfilePath)) {
+    $profilePaths += $BashLoginProfilePath
+} elseif (-not $PSBoundParameters.ContainsKey('BashProfilePath')) {
+    $profilePaths += Join-Path $HOME '.bash_profile'
+}
+foreach ($shellProfilePath in @($profilePaths) | Select-Object -Unique) {
     if (Test-Path -LiteralPath $shellProfilePath -PathType Leaf) {
         $existing = Get-Content -LiteralPath $shellProfilePath -Raw
         $pattern = '(?ms)^# >>> jax CLI >>>.*?^# <<< jax CLI <<<\r?\n?'

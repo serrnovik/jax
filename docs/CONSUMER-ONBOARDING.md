@@ -15,7 +15,8 @@ For zsh or bash, run `Install-JaxShellIntegration` without `-Shell`; it
 registers PowerShell plus the detected login shell, or the platform default
 when `SHELL` is unavailable (zsh on macOS, bash on Linux). The generated shell
 functions route arguments and completion through `pwsh`; they do not duplicate
-the Jax runtime and do not need a `PATH` entry.
+the Jax runtime and do not need a `PATH` entry. Bash registration covers both
+`~/.bashrc` and `~/.bash_profile`; zsh completion supports arrow-key selection.
 
 For local Jax development, invoke `./Install-Jax.ps1` directly from a
 PowerShell session. It installs and pins the source build in PowerShell and the

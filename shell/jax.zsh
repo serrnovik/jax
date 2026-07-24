@@ -27,6 +27,13 @@ _jax_zsh_completion() {
     (( ${#candidates[@]} > 0 )) && compadd -Q -- "${candidates[@]}"
 }
 
+_jax_enable_zsh_menu_completion() {
+    zmodload -i zsh/complist 2>/dev/null || return 0
+    zstyle ':completion:*:*:jax:*' menu select=1
+    zstyle ':completion:*:*:jx:*' menu select=1
+    zstyle ':completion:*:*:jxs:*' menu select=1
+}
+
 _jax_register_zsh_completion() {
     (( $+functions[compdef] )) || return 0
     compdef _jax_zsh_completion jax jx jxs
@@ -34,6 +41,8 @@ _jax_register_zsh_completion() {
         add-zsh-hook -d precmd _jax_register_zsh_completion 2>/dev/null
     fi
 }
+
+_jax_enable_zsh_menu_completion
 
 if (( $+functions[compdef] )); then
     _jax_register_zsh_completion

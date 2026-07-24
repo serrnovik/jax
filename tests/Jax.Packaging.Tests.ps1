@@ -88,16 +88,21 @@ Describe 'Standalone Jax packaging' {
         $shellRoot = Join-Path $script:testRoot 'shell-integration'
         $zshProfile = Join-Path $script:testRoot 'profiles/.zshrc'
         $bashProfile = Join-Path $script:testRoot 'profiles/.bashrc'
+        $bashLoginProfile = Join-Path $script:testRoot 'profiles/.bash_profile'
 
         Install-JaxShellIntegration -Shell zsh, bash -InstallRoot $shellRoot `
-            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile
+            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile `
+            -BashLoginProfilePath $bashLoginProfile
         Install-JaxShellIntegration -Shell zsh, bash -InstallRoot $shellRoot `
-            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile
+            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile `
+            -BashLoginProfilePath $bashLoginProfile
 
         Test-Path -LiteralPath (Join-Path $shellRoot 'Jax.ShellLauncher.ps1') | Should -BeTrue
         ([regex]::Matches((Get-Content -LiteralPath $zshProfile -Raw), '# >>> jax CLI >>>')).Count |
             Should -Be 1
         ([regex]::Matches((Get-Content -LiteralPath $bashProfile -Raw), '# >>> jax CLI >>>')).Count |
+            Should -Be 1
+        ([regex]::Matches((Get-Content -LiteralPath $bashLoginProfile -Raw), '# >>> jax CLI >>>')).Count |
             Should -Be 1
     }
 
@@ -232,6 +237,26 @@ autoload -Uz compinit
 compinit
 _jax_register_zsh_completion
 [[ "${_comps[jx]-}" == "_jax_zsh_completion" ]]
+'@ jax-test $wrapper
+
+        $LASTEXITCODE | Should -Be 0
+    }
+
+    It 'enables arrow-key menu selection only for Jax zsh commands' `
+        -Skip:($IsWindows -or $null -eq (Get-Command zsh -ErrorAction SilentlyContinue)) {
+        $wrapper = Join-Path $script:installRoot 'shell/jax.zsh'
+        & zsh -fc @'
+autoload -Uz compinit
+compinit
+source "$1"
+zmodload -e zsh/complist || exit 1
+for command_name in jax jx jxs; do
+    menu_style=''
+    zstyle -s ":completion:*:*:${command_name}:*" menu menu_style || exit 1
+    [[ "$menu_style" == "select=1" ]] || exit 1
+done
+global_menu=''
+! zstyle -s ':completion:*' menu global_menu
 '@ jax-test $wrapper
 
         $LASTEXITCODE | Should -Be 0
@@ -445,14 +470,18 @@ jax:
         $uninstaller = Join-Path $script:sourceRoot 'Uninstall-Jax.ps1'
         $zshProfile = Join-Path $script:testRoot '.zshrc'
         $bashProfile = Join-Path $script:testRoot '.bashrc'
+        $bashLoginProfile = Join-Path $script:testRoot '.bash_profile'
         Set-Content -LiteralPath $zshProfile -Value "# >>> jax CLI >>>`nsource jax.zsh`n# <<< jax CLI <<<"
         Set-Content -LiteralPath $bashProfile -Value "# >>> jax CLI >>>`nsource jax.bash`n# <<< jax CLI <<<"
+        Set-Content -LiteralPath $bashLoginProfile -Value "# >>> jax CLI >>>`nsource jax.bash`n# <<< jax CLI <<<"
         & $uninstaller -InstallRoot $script:installRoot -ProfilePath $script:profilePath `
-            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile -Confirm:$false
+            -ZshProfilePath $zshProfile -BashProfilePath $bashProfile `
+            -BashLoginProfilePath $bashLoginProfile -Confirm:$false
 
         Test-Path -LiteralPath $script:installRoot | Should -BeFalse
         (Get-Content -LiteralPath $script:profilePath -Raw) | Should -Not -Match '# >>> jax CLI >>>'
         (Get-Content -LiteralPath $zshProfile -Raw) | Should -Not -Match '# >>> jax CLI >>>'
         (Get-Content -LiteralPath $bashProfile -Raw) | Should -Not -Match '# >>> jax CLI >>>'
+        (Get-Content -LiteralPath $bashLoginProfile -Raw) | Should -Not -Match '# >>> jax CLI >>>'
     }
 }

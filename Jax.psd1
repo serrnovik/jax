@@ -1,6 +1,6 @@
 @{
     RootModule = 'Jax.psm1'
-    ModuleVersion = '0.1.8'
+    ModuleVersion = '0.1.9'
     GUID = '1ea40670-b2f8-4daa-bc38-724f570ee4d9'
     Author = 'Sergey Novikov <sergey@novik.fr>'
     Copyright = 'Copyright 2026 Sergey Novikov'

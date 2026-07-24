@@ -127,7 +127,8 @@ function Install-JaxShellIntegration {
         # profile commands cannot silently replace the jax/jx aliases.
         [string] $PowerShellProfilePath = $PROFILE.CurrentUserCurrentHost,
         [string] $ZshProfilePath = (Join-Path $HOME '.zshrc'),
-        [string] $BashProfilePath = (Join-Path $HOME '.bashrc')
+        [string] $BashProfilePath = (Join-Path $HOME '.bashrc'),
+        [string] $BashLoginProfilePath
     )
 
     $resolvedModulePath = $null
@@ -186,13 +187,21 @@ function Install-JaxShellIntegration {
         }
     }
 
+    $bashProfiles = @([IO.Path]::GetFullPath($BashProfilePath))
+    if (-not [string]::IsNullOrWhiteSpace($BashLoginProfilePath)) {
+        $bashProfiles += [IO.Path]::GetFullPath($BashLoginProfilePath)
+    } elseif (-not $PSBoundParameters.ContainsKey('BashProfilePath')) {
+        # Login Bash reads ~/.bash_profile instead of ~/.bashrc on macOS and
+        # on many Linux setups. Register both default entrypoints.
+        $bashProfiles += [IO.Path]::GetFullPath((Join-Path $HOME '.bash_profile'))
+    }
+
     $profiles = @{
-        powershell = [IO.Path]::GetFullPath($PowerShellProfilePath)
-        zsh = [IO.Path]::GetFullPath($ZshProfilePath)
-        bash = [IO.Path]::GetFullPath($BashProfilePath)
+        powershell = @([IO.Path]::GetFullPath($PowerShellProfilePath))
+        zsh = @([IO.Path]::GetFullPath($ZshProfilePath))
+        bash = @($bashProfiles | Select-Object -Unique)
     }
     foreach ($shellName in @($Shell | Sort-Object -Unique)) {
-        $profilePath = $profiles[$shellName]
         $beginMarker = '# >>> jax CLI >>>'
         $endMarker = '# <<< jax CLI <<<'
         $block = if ($shellName -eq 'powershell') {
@@ -244,26 +253,28 @@ ${modulePathLine}[ -f $quotedIntegrationPath ] && source $quotedIntegrationPath
 $endMarker
 "@
         }
-        $existing = if (Test-Path -LiteralPath $profilePath -PathType Leaf) {
-            Get-Content -LiteralPath $profilePath -Raw
-        } else {
-            ''
-        }
-        $pattern = '(?ms)^' + [regex]::Escape($beginMarker) + '.*?^' +
-            [regex]::Escape($endMarker) + '\r?\n?'
-        $withoutOldBlock = [regex]::Replace($existing, $pattern, '').TrimEnd()
-        $profileContent = if ([string]::IsNullOrWhiteSpace($withoutOldBlock)) {
-            $block
-        } else {
-            "$withoutOldBlock`n`n$block"
-        }
+        foreach ($profilePath in @($profiles[$shellName])) {
+            $existing = if (Test-Path -LiteralPath $profilePath -PathType Leaf) {
+                Get-Content -LiteralPath $profilePath -Raw
+            } else {
+                ''
+            }
+            $pattern = '(?ms)^' + [regex]::Escape($beginMarker) + '.*?^' +
+                [regex]::Escape($endMarker) + '\r?\n?'
+            $withoutOldBlock = [regex]::Replace($existing, $pattern, '').TrimEnd()
+            $profileContent = if ([string]::IsNullOrWhiteSpace($withoutOldBlock)) {
+                $block
+            } else {
+                "$withoutOldBlock`n`n$block"
+            }
 
-        if ($PSCmdlet.ShouldProcess($profilePath, "Register Jax $shellName integration")) {
-            $profileDirectory = Split-Path -Parent $profilePath
-            New-Item -ItemType Directory -Path $profileDirectory -Force | Out-Null
-            Set-Content -LiteralPath $profilePath -Value $profileContent -Encoding utf8
+            if ($PSCmdlet.ShouldProcess($profilePath, "Register Jax $shellName integration")) {
+                $profileDirectory = Split-Path -Parent $profilePath
+                New-Item -ItemType Directory -Path $profileDirectory -Force | Out-Null
+                Set-Content -LiteralPath $profilePath -Value $profileContent -Encoding utf8
+            }
+            Write-Host "Jax $shellName integration registered in $profilePath" -ForegroundColor Green
         }
-        Write-Host "Jax $shellName integration registered in $profilePath" -ForegroundColor Green
     }
 
     Write-Host 'Open a new shell, or dot-source the updated profile now.' -ForegroundColor DarkGray

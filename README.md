@@ -41,7 +41,9 @@ The thin, argument-safe `jax`, `jx`, and `jxs` functions route commands and
 dynamic tab completion to PowerShell, so Jax keeps one implementation. Open a
 new shell afterward. Pass `-Shell powershell,zsh,bash` to register all three.
 The wrappers are sourced as shell functions from `~/.jax/shell`; they do not
-need to be added to `PATH`.
+need to be added to `PATH`. Bash integration is written to both `~/.bashrc` and
+the login-shell `~/.bash_profile`. In zsh, Jax candidates open in a
+command-scoped selection menu: use the arrow keys and Enter to choose.
 
 ## Start a new consumer repository
 
