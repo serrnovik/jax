@@ -1,0 +1,25 @@
+Jax.psd1
+  s_8d2f32442e9623::t_ca38f55a873e9f 3,30
+Jax.psm1
+  s_8d2f32442e9623::t_d6dc3fef5eeac8 123-125
+VERSION
+  s_8d2f32442e9623::t_40d1fe43ccbce8 1
+distribution-manifest.psd1
+  s_8d2f32442e9623::t_7cace4a0182c67 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1fb931b71c309f37553f0883d2537973007228ec",
+  "prompts": {},
+  "sessions": {
+    "s_8d2f32442e9623": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c56a6dfa-c848-4fbd-889e-39f88eb5d335",
+        "model": "grok-4.5"
+      },
+      "human_author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
