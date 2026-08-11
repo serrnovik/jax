@@ -1,0 +1,86 @@
+.gitignore
+  h_813cbbe43c4b46 8-12
+Jax.psd1
+  h_813cbbe43c4b46 3,30
+Jax.psm1
+  h_813cbbe43c4b46 182-184,191-195,211-223,318-320
+README.md
+  h_813cbbe43c4b46 40,43-46,133-148
+VERSION
+  h_813cbbe43c4b46 1
+core/private/ConvertTo-JaxUtcDate.ps1
+  h_813cbbe43c4b46 1-29
+core/private/Get-JaxJsonProperty.ps1
+  h_813cbbe43c4b46 1-22
+core/private/Get-JaxPsakeTaskInfoByParsing.ps1
+  h_813cbbe43c4b46 190-212,227-232
+core/private/Get-JaxShellSessionKey.ps1
+  h_813cbbe43c4b46 1-21
+core/private/Invoke-JaxPsakeRunner.ps1
+  h_813cbbe43c4b46 34
+core/private/Read-JaxJsonFile.ps1
+  h_813cbbe43c4b46 1-24
+core/private/Resolve-JaxPsakeProperties.ps1
+  h_813cbbe43c4b46 1-45
+core/private/Save-JaxUpdateNoticeState.ps1
+  h_813cbbe43c4b46 1-134
+core/private/Start-JaxUpdateCheck.ps1
+  h_813cbbe43c4b46 1-63
+core/public/Get-JaxEntityParameterPreview.ps1
+  h_813cbbe43c4b46 1-140
+core/public/Resolve-JaxRunPlan.ps1
+  h_813cbbe43c4b46 44-53,55,57
+core/public/Write-JaxUpdateNotice.ps1
+  h_813cbbe43c4b46 1-92
+distribution-manifest.psd1
+  h_813cbbe43c4b46 2
+docs/CONSUMER-ONBOARDING.md
+  h_813cbbe43c4b46 18-22
+docs/README.md
+  h_813cbbe43c4b46 741-770,823-826
+jax.ps1
+  h_813cbbe43c4b46 133-150,182-187,329,350,877-897,1098-1104,1290-1301,1306-1316,1391-1400
+plugins/bob/private/Initialize-JaxBobGitReady.ps1
+  h_813cbbe43c4b46 44-49
+shell/bin/jax
+  h_813cbbe43c4b46 1-30
+shell/bin/jx
+  h_813cbbe43c4b46 1-30
+shell/bin/jxs
+  h_813cbbe43c4b46 1-30
+shell/jax.bash
+  h_813cbbe43c4b46 5-17,19-22
+shell/jax.zsh
+  h_813cbbe43c4b46 5-11,13-15
+skills/jax/SKILL.md
+  h_813cbbe43c4b46 8,11-48,64-68,71-73,79,81-84,95-96,102-132,135-137,141-144,155-156
+tests/Jax.Cli.BoolParams.Tests.ps1
+  h_813cbbe43c4b46 1-47
+tests/Jax.Cli.ForceReloadModules.NoNoise.Tests.ps1
+  h_813cbbe43c4b46 4-9
+tests/Jax.Cli.ParamPreview.Tests.ps1
+  h_813cbbe43c4b46 1-76
+tests/Jax.Cli.UpdateNotice.Tests.ps1
+  h_813cbbe43c4b46 1-194
+tests/Jax.Cli.VaultToggle.Tests.ps1
+  h_813cbbe43c4b46 5-9
+tests/Jax.Core.Selection.Tests.ps1
+  h_813cbbe43c4b46 156-169
+tests/Jax.Packaging.Tests.ps1
+  h_813cbbe43c4b46 35,262-316
+tests/Jax.Plugin.Bob.RunConfigLogging.Tests.ps1
+  h_813cbbe43c4b46 15
+tests/fixtures/jax-client/env/jax_client/dev/psakefile.ps1
+  h_813cbbe43c4b46 1-9,33-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "305230be6f18a110f4c18f3cdf479531044e7016",
+  "prompts": {},
+  "humans": {
+    "h_813cbbe43c4b46": {
+      "author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
