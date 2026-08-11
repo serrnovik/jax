@@ -37,11 +37,13 @@ Install-JaxShellIntegration -Shell powershell,zsh,bash
 Omit `-Shell` to register PowerShell plus the detected zsh or bash login shell.
 When `SHELL` is unavailable to a non-interactive installer, it uses the platform
 default (zsh on macOS, bash on Linux).
-The thin, argument-safe `jax`, `jx`, and `jxs` functions route commands and
+The thin, argument-safe `jax`, `jx`, and `jxs` commands route invocations and
 dynamic tab completion to PowerShell, so Jax keeps one implementation. Open a
 new shell afterward. Pass `-Shell powershell,zsh,bash` to register all three.
-The wrappers are sourced as shell functions from `~/.jax/shell`; they do not
-need to be added to `PATH`. Bash integration is written to both `~/.bashrc` and
+They are installed as executables in `~/.jax/shell/bin`, and the profile block
+prepends that directory to `PATH`. Because `PATH` is inherited but sourced
+functions are not, the same command also works in non-interactive shells,
+scripts, CI steps, and coding-agent shells. Bash integration is written to both `~/.bashrc` and
 the login-shell `~/.bash_profile`. In zsh, press Tab to open the
 command-scoped selection menu; candidates retain Jax's emoji labels and can be
 selected with the arrow keys and Enter. When no global zsh menu preference
@@ -127,6 +129,22 @@ Update-Module Jax
 Gallery versions install side by side. Restart PowerShell or run
 `Import-Module Jax -Force` after updating. Re-run
 `Install-JaxShellIntegration` only when its shell bridge itself changes.
+
+Jax tells you when an update exists. After a run it prints a two-line hint once
+per shell session:
+
+```text
+  Jax 0.1.12 is available (you have 0.1.11).
+  Update: Update-PSResource Jax -Scope CurrentUser -Repository PSGallery -TrustRepository
+```
+
+The hint reads only `~/.jax/update-check.json`, so it never waits on the
+network; a stale cache is refreshed by a detached background process and used
+by the next run. Being offline, having no cache yet, or a read-only `HOME` are
+all silent. The hint is skipped when stdout is redirected — scripts, pipelines,
+and agent sessions never see it — when `CI` is set, and when
+`JAX_NO_UPDATE_NOTICE=1` is set. `Get-JaxUpdateStatus` reports the same
+comparison on demand.
 
 Uninstall:
 

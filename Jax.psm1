@@ -179,10 +179,18 @@ function Install-JaxShellIntegration {
 
     $sourceRoot = Join-Path $PSScriptRoot 'shell'
     $requiredFiles = @('Jax.ShellLauncher.ps1', 'Jax.ShellCompletion.ps1', 'jax.zsh', 'jax.bash')
+    # Executable shims keep jax/jx/jxs available wherever PATH is inherited but
+    # sourced shell functions are not: scripts, CI steps, and agent shells.
+    $requiredShims = @('jax', 'jx', 'jxs')
     if ($unixShells.Count -gt 0) {
         foreach ($file in $requiredFiles) {
             if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot $file) -PathType Leaf)) {
                 throw "Jax shell integration file is missing: $file"
+            }
+        }
+        foreach ($shim in $requiredShims) {
+            if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot "bin/$shim") -PathType Leaf)) {
+                throw "Jax shell integration file is missing: bin/$shim"
             }
         }
 
@@ -199,6 +207,19 @@ function Install-JaxShellIntegration {
             foreach ($file in $requiredFiles) {
                 Copy-Item -LiteralPath (Join-Path $sourceRoot $file) `
                     -Destination (Join-Path $resolvedInstallRoot $file) -Force
+            }
+
+            $shimRoot = Join-Path $resolvedInstallRoot 'bin'
+            New-Item -ItemType Directory -Path $shimRoot -Force | Out-Null
+            foreach ($shim in $requiredShims) {
+                $shimDestination = Join-Path $shimRoot $shim
+                Copy-Item -LiteralPath (Join-Path $sourceRoot "bin/$shim") `
+                    -Destination $shimDestination -Force
+                # Copy-Item does not guarantee the Unix execute bit survives.
+                & /bin/chmod 'a+x' $shimDestination
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to make the Jax shim executable: $shimDestination"
+                }
             }
         }
     }
@@ -294,6 +315,9 @@ $endMarker
     }
 
     Write-Host 'Open a new shell, or dot-source the updated profile now.' -ForegroundColor DarkGray
+    if ($unixShells.Count -gt 0) {
+        Write-Host ("jax, jx, and jxs are installed as executables in {0}/bin and added to PATH." -f $resolvedInstallRoot) -ForegroundColor DarkGray
+    }
 }
 
 function Invoke-Jax {

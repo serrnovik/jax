@@ -153,6 +153,20 @@ Describe 'Resolve-JaxRunPlan' {
 
         { Resolve-JaxRunPlan -ScenarioEntities $scenarios -Only 'build,test,deploy' } | Should -Throw "*test*"
     }
+
+    It 'prefers an exact individual task over a flow that contains it' {
+        $scenarios = @(
+            @{ Key = 'docker'; Tasks = @('BumpVersion', 'BuildWebAppImage') }
+        )
+        $individual = @(
+            @{ Key = 'BuildWebAppImage'; Runner = 'psake' }
+        )
+
+        $result = @(Resolve-JaxRunPlan -ScenarioEntities $scenarios -IndividualEntities $individual -Only 'BuildWebAppImage')
+
+        $result.Count | Should -Be 1
+        $result[0].Key | Should -Be 'BuildWebAppImage'
+    }
 }
 
 Describe 'Resolve-JaxSelectedEnvironment' {

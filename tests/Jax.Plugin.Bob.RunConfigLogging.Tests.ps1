@@ -12,6 +12,7 @@ Describe 'Jax bob plugin run-config logging' {
             $null = New-Item -Path $parent -ItemType Directory -Force
             $fixtureRoot = Join-Path $parent 'jax-client'
             Copy-Item -Path $sourceFixture -Destination $fixtureRoot -Recurse -Force
+            & git -C $fixtureRoot init --quiet
             return $fixtureRoot
         }
     }

@@ -1,7 +1,12 @@
 Describe 'Jax CLI -frm/-fr module reload' {
     BeforeAll {
         $script:repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-        $script:fixtureRoot = Join-Path $script:repoRoot 'tests/fixtures/jax-client'
+        # Run against a copy that is itself a git repo: the bob plugin prompts
+        # interactively when the -C root has no .git, and that prompt hangs
+        # forever under Pester (stdout is captured, stdin is still the tty).
+        $script:fixtureRoot = Join-Path $TestDrive 'jax-client'
+        Copy-Item -LiteralPath (Join-Path $script:repoRoot 'tests/fixtures/jax-client') -Destination $script:fixtureRoot -Recurse
+        & git -C $script:fixtureRoot init --quiet
     }
 
     It 'does not print missing-core-function errors during plugin registration' {

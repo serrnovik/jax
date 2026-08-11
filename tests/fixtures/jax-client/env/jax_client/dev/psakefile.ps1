@@ -1,3 +1,12 @@
+properties {
+    [bool]$boolFlag = $false
+    # Braces below are the regression, not decoration: a comment mentioning
+    # -properties @{ boolFlag = $true }, and a hashtable default, both used to
+    # end the parsed block early and silently hide every property after them.
+    $hashDefault = @{ nested = 'value' }
+    [string]$afterBraceComment = 'reached'
+}
+
 Task Info {
     Write-Host "DevInfo"
 }
@@ -20,4 +29,12 @@ Task TestStep1 {
 
 Task TestStep3 {
     Write-Host "TestStep3"
+}
+
+Task ShowBoolFlag {
+    $value = $boolFlag
+    if ($null -ne $properties -and $properties.ContainsKey('boolFlag')) {
+        $value = $properties['boolFlag']
+    }
+    Write-Host ("Props.boolFlag: {0}" -f [bool]$value)
 }

@@ -5,3 +5,8 @@ TestResults.xml
 .artifacts/
 .jax-staging-*/
 .jax-backup-*/
+
+# The installed jax/jx/jxs shims ship from shell/bin. The repository-wide
+# "[Bb]in/" rule would otherwise drop them from every clone and package.
+!shell/bin/
+!shell/bin/*

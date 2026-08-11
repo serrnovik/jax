@@ -130,6 +130,24 @@ dynamicparam {
         return [System.Management.Automation.RuntimeDefinedParameter]::new($Name, $Type, $attrs)
     }
 
+    # A `[bool]$foo = $false` in a psake properties{} block (or in a script's param()) would bind as a
+    # PowerShell [bool] parameter, and those ALWAYS demand an argument (`-foo:$true`). Expose them as
+    # [switch] instead so they behave like every other CLI flag (`-foo`, `-foo:$false`), and remember
+    # the names so the run path can hand a real [bool] back to the runner.
+    $script:JaxBoolFlagParams = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+    function Resolve-JaxRuntimeParamType {
+        param(
+            [Parameter(Mandatory = $true)] [string] $Name,
+            [Type] $Type
+        )
+        if ($Type -eq [bool]) {
+            $script:JaxBoolFlagParams.Add($Name) | Out-Null
+            return [switch]
+        }
+        return $Type
+    }
+
     $dict = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 
     # ---- task/script params (resolved from plan) ----
@@ -160,6 +178,12 @@ dynamicparam {
         if ($PSBoundParameters.ContainsKey('noCache')) { $cliOptions['noCache'] = [bool]$PSBoundParameters['noCache'] }
         if ($PSBoundParameters.ContainsKey('Quiet')) { $cliOptions['quiet'] = [bool]$PSBoundParameters['Quiet'] }
         if ($PSBoundParameters.ContainsKey('NoQuiet')) { $cliOptions['noQuiet'] = [bool]$PSBoundParameters['NoQuiet'] }
+
+        # Names Jax owns itself; a task/script/plugin param may never shadow them.
+        # Defined up front: the plugin loop below reads it too, and under Set-StrictMode
+        # an unset $reservedLower aborts the whole DynamicParam block.
+        $reserved = @('Command', 'CommandArgs', 'env', 'client', 'scenario', 'from', 'to', 'only', 'noBuild', 'buildChainOnly', 'noCache', 'Detailed', 'Quiet', 'NoQuiet', 'RepoRoot')
+        $reservedLower = @($reserved | ForEach-Object { $_.ToLowerInvariant() })
 
         # ---- plugin/core CLI params (always) ----
         # Expose registered CLI params (including plugin-defined flags) as real PowerShell parameters
@@ -279,9 +303,6 @@ dynamicparam {
             }
             $plan = Resolve-JaxRunPlan -BuildEntities $buildEntities -ScenarioEntities $scenarioEntities -IndividualEntities $discoveredEntities -NoBuild:([bool]$cliOptions['noBuild']) -BuildChainOnly:([bool]$cliOptions['buildChainOnly']) -Only $cliOptions['only'] -From $cliOptions['from'] -To $cliOptions['to'] -Context $context @commonParams
 
-            $reserved = @('Command', 'CommandArgs', 'env', 'client', 'scenario', 'from', 'to', 'only', 'noBuild', 'buildChainOnly', 'noCache', 'Detailed', 'Quiet', 'NoQuiet', 'RepoRoot')
-            $reservedLower = @($reserved | ForEach-Object { $_.ToLowerInvariant() })
-
             foreach ($entity in @($plan)) {
                 if ($null -eq $entity -or $entity -isnot [System.Collections.IDictionary]) {
                     continue
@@ -305,6 +326,7 @@ dynamicparam {
                                 try { $paramType = $typeName -as [type] } catch { $paramType = [object] }
                                 if ($null -eq $paramType) { $paramType = [object] }
                             }
+                            $paramType = Resolve-JaxRuntimeParamType -Name $pName -Type $paramType
                             $help = [string]$p['Description']
                             $dict.Add($pName, (New-JaxRuntimeParam -Name $pName -Type $paramType -Aliases @() -HelpMessage $help -ValidateSetValues @()))
                         }
@@ -325,6 +347,7 @@ dynamicparam {
                                 $meta = $kv.Value
                                 $pType = [object]
                                 try { $pType = $meta.ParameterType } catch { $pType = [object] }
+                                $pType = Resolve-JaxRuntimeParamType -Name $pName -Type $pType
                                 $dict.Add($pName, (New-JaxRuntimeParam -Name $pName -Type $pType -Aliases @() -HelpMessage '' -ValidateSetValues @()))
                             }
                         }
@@ -851,6 +874,27 @@ begin {
         } catch {
             # best effort
         }
+        # Back-compat for the old `-boolParam $true` spelling. Those params are switches now, so
+        # PowerShell binds the flag and leaves the literal behind in $CommandArgs, where it would be
+        # mistaken for a positional task name (and `-boolParam $false` would silently mean "true").
+        # Re-attach the literal when there is exactly one candidate; otherwise drop it and say so.
+        $trailingBoolOverrides = @{}
+        $boolFlagsBound = @()
+        if ($null -ne $script:JaxBoolFlagParams -and $script:JaxBoolFlagParams.Count -gt 0) {
+            $boolFlagsBound = @($PSBoundParameters.Keys | Where-Object { $script:JaxBoolFlagParams.Contains([string]$_) })
+        }
+        if ($boolFlagsBound.Count -gt 0 -and $parsed.Remaining.Count -gt 0) {
+            $boolLiteralPattern = '^\$?(true|false)$'
+            $trailingLiterals = @($parsed.Remaining | Where-Object { $_ -match $boolLiteralPattern })
+            if ($trailingLiterals.Count -gt 0) {
+                $parsed.Remaining = @($parsed.Remaining | Where-Object { $_ -notmatch $boolLiteralPattern })
+                if ($boolFlagsBound.Count -eq 1 -and $trailingLiterals.Count -eq 1) {
+                    $trailingBoolOverrides[[string]$boolFlagsBound[0]] = [bool]($trailingLiterals[0] -match 'true')
+                } else {
+                    Write-Warning ("jax: ignored trailing boolean literal(s) '{0}'. Boolean task parameters are flags: use -<name> or -<name>:`$false." -f ($trailingLiterals -join "', '"))
+                }
+            }
+        }
         if ($parsed.Remaining.Count -gt 0 -and [string]::IsNullOrWhiteSpace($options['only'])) {
             $options['only'] = $parsed.Remaining[0]
         }
@@ -1051,7 +1095,13 @@ begin {
             $lk = $k.ToLowerInvariant()
             if ($reservedLower -contains $lk) { continue }
             if ($commonKeys -contains $lk) { continue }
-            $cliArgs[$k] = $PSBoundParameters[$k]
+            $value = $PSBoundParameters[$k]
+            # Bool-typed task/script params are exposed as switches (see DynamicParam); runners expect a bool.
+            if ($value -is [System.Management.Automation.SwitchParameter]) { $value = [bool]$value }
+            $cliArgs[$k] = $value
+        }
+        foreach ($k in @($trailingBoolOverrides.Keys)) {
+            $cliArgs[$k] = $trailingBoolOverrides[$k]
         }
         # Unknown CLI args (from CommandArgs parsing) are lower precedence than actual bound parameters.
         if ($null -ne $unknownCliArgs -and $unknownCliArgs.Count -gt 0) {
@@ -1237,11 +1287,33 @@ $hintText
         # / cmux surface titles we changed (e.g. "WTW Shell" or other wtw-named tabs).
         try {
             if ($options.ContainsKey('dryRunDeep') -and $options.dryRunDeep) {
-                $plan | ConvertTo-Json -Depth 6
+                # ResolvedParameters answers "what did my CLI flags actually do?" — the plan
+                # itself only carries the declared schema, since CLI params are merged later.
+                $deep = @(
+                    foreach ($entity in @($plan)) {
+                        if ($entity -isnot [System.Collections.IDictionary]) { $entity; continue }
+                        $copy = @{}
+                        foreach ($k in $entity.Keys) { $copy[[string]$k] = $entity[$k] }
+                        $copy['ResolvedParameters'] = @(Get-JaxEntityParameterPreview -Entity $entity -Context $context -CommonParameters $commonParams @commonParams)
+                        $copy
+                    }
+                )
+                $deep | ConvertTo-Json -Depth 8
             } elseif ($options.ContainsKey('plan') -and $options.plan) {
                 Write-JaxPlanOutput -Entities $plan -Detailed:$Detailed -Context $context @commonParams
             } elseif ($options.ContainsKey('dryRun') -and $options.dryRun) {
                 $plan | Format-List
+                foreach ($entity in @($plan)) {
+                    if ($entity -isnot [System.Collections.IDictionary]) { continue }
+                    $preview = @(Get-JaxEntityParameterPreview -Entity $entity -Context $context -CommonParameters $commonParams @commonParams)
+                    if ($preview.Count -eq 0) { continue }
+                    Write-Host ("Resolved parameters for '{0}':" -f $entity['Key'])
+                    $preview |
+                        ForEach-Object { [pscustomobject]$_ } |
+                        Format-Table -Property Name, Type, Value, Source -AutoSize |
+                        Out-String -Width 200 |
+                        Write-Host
+                }
             } else {
                 $context['SuppressResults'] = $true
                 Invoke-JaxRunEntities -Entities $plan -Context $context @commonParams
@@ -1314,5 +1386,15 @@ $hintText
         default {
             Show-JaxHelp
         }
+    }
+}
+
+end {
+    # A newer-version hint, printed after the run so it never delays it.
+    # Cache-only and best effort: see Write-JaxUpdateNotice.
+    try {
+        Write-JaxUpdateNotice -RuntimeRoot $PSScriptRoot
+    } catch {
+        # Never let the update hint affect the exit path of a Jax run.
     }
 }

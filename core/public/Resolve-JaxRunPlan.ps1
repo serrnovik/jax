@@ -41,14 +41,20 @@ function Resolve-JaxRunPlan {
             [switch] $ApplyLibrarySlice
         )
 
-        $selectorSelected = @(Select-JaxRunEntities -Entities $plan -Only $Selector)
-
+        # Select across the combined candidate set so an exact individual key
+        # wins globally over a scenario/flow that only mentions the selector
+        # in its Tasks list.
+        #
+        # Merge rather than concatenate: a scenario listing a task by name now
+        # carries that task's own key, so the scenario entity and the discovered
+        # entity describe the same work. Concatenating would match both and run
+        # it twice. Merge-JaxRunEntityList collapses them on the normalized key
+        # and keeps the discovered definition, which is the more complete one.
+        $selectorCandidates = @($plan)
         if ($null -ne $IndividualEntities) {
-            $individualSelected = @(Select-JaxRunEntities -Entities $IndividualEntities -Only $Selector)
-            if ($individualSelected.Count -gt 0) {
-                $selectorSelected = Merge-JaxRunEntityList -Base $selectorSelected -Add $individualSelected
-            }
+            $selectorCandidates = @(Merge-JaxRunEntityList -Base $selectorCandidates -Add @($IndividualEntities) @commonParams)
         }
+        $selectorSelected = @(Select-JaxRunEntities -Entities $selectorCandidates -Only $Selector)
 
         # Library fallback: if a selector is not in the active plan/discovered entities,
         # resolve it from ScenarioLibrary so ad-hoc lists can include library items too.

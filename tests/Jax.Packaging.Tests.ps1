@@ -32,6 +32,7 @@ Describe 'Standalone Jax packaging' {
         Test-Path -LiteralPath (Join-Path $script:installRoot 'psake/src/psake.psm1') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $script:installRoot 'skills/jax/SKILL.md') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $script:installRoot 'shell/jax.zsh') | Should -BeTrue
+        Test-Path -LiteralPath (Join-Path $script:installRoot 'shell/bin/jx') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $script:installRoot 'LICENSE') | Should -BeTrue
         Test-Path -LiteralPath (Join-Path $script:installRoot 'tests') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $script:installRoot 'plugins/tests') | Should -BeFalse
@@ -256,6 +257,61 @@ Describe 'Standalone Jax packaging' {
         $bashExit | Should -Be 0 -Because $bashOutput
         $zshOutput | Should -Match 'Target repository:'
         $bashOutput | Should -Match 'Target repository:'
+    }
+
+    It 'runs jx from PATH alone, without a sourced shell function' `
+        -Skip:($IsWindows -or $null -eq (Get-Command sh -ErrorAction SilentlyContinue)) {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $shellRoot = Join-Path $script:testRoot 'shell-shims'
+        Install-JaxShellIntegration -Shell zsh, bash -InstallRoot $shellRoot `
+            -ZshProfilePath (Join-Path $script:testRoot 'shims.zshrc') `
+            -BashProfilePath (Join-Path $script:testRoot 'shims.bashrc')
+
+        foreach ($shim in @('jax', 'jx', 'jxs')) {
+            $shimPath = Join-Path $shellRoot "bin/$shim"
+            Test-Path -LiteralPath $shimPath -PathType Leaf | Should -BeTrue
+            & /bin/test -x $shimPath
+            $LASTEXITCODE | Should -Be 0 -Because "$shim must be executable"
+        }
+
+        $previousPath = $env:PATH
+        $previousModulePath = $env:JAX_MODULE_PATH
+        try {
+            $env:PATH = (Join-Path $shellRoot 'bin') + [IO.Path]::PathSeparator + $previousPath
+            $env:JAX_MODULE_PATH = Join-Path $script:installRoot 'Jax.psd1'
+            # No profile is sourced here: the command must resolve from PATH.
+            $output = & sh -c 'jx "$@"' jax-test -C $script:consumerRoot info -q 2>&1 | Out-String
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $env:PATH = $previousPath
+            if ($null -eq $previousModulePath) {
+                Remove-Item Env:JAX_MODULE_PATH -ErrorAction SilentlyContinue
+            } else {
+                $env:JAX_MODULE_PATH = $previousModulePath
+            }
+        }
+
+        $exitCode | Should -Be 0 -Because $output
+        $output | Should -Match 'Target repository:'
+    }
+
+    It 'adds the shim directory to PATH and removes legacy wrapper functions' `
+        -Skip:($IsWindows -or $null -eq (Get-Command zsh -ErrorAction SilentlyContinue)) {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $shellRoot = Join-Path $script:testRoot 'shell-path'
+        Install-JaxShellIntegration -Shell zsh -InstallRoot $shellRoot `
+            -ZshProfilePath (Join-Path $script:testRoot 'path.zshrc')
+
+        & zsh -fc @'
+jax() { return 3 }
+source "$1"
+bin_dir="${1:A:h}/bin"
+[[ ":$PATH:" == *":$bin_dir:"* ]] || exit 1
+whence -w jax | grep -q 'jax: command' || exit 1
+whence -w jx | grep -q 'jx: command' || exit 1
+'@ jax-test (Join-Path $shellRoot 'jax.zsh')
+
+        $LASTEXITCODE | Should -Be 0
     }
 
     It 'prefers a local source install when shell profile pinning is absent' -Skip:($IsWindows) {

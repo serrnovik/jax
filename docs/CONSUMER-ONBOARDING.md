@@ -15,8 +15,11 @@ For zsh or bash, run
 `Install-JaxShellIntegration -Shell powershell,zsh,bash`, or omit `-Shell` to
 register PowerShell plus the detected login shell. When `SHELL` is unavailable,
 Jax uses the platform default (zsh on macOS, bash on Linux). The generated
-shell functions route arguments and completion through `pwsh`; they do not
-duplicate the Jax runtime and do not need a `PATH` entry. Bash registration
+`jax`, `jx`, and `jxs` executables route arguments and completion through
+`pwsh`; they do not duplicate the Jax runtime. They live in
+`~/.jax/shell/bin`, which the profile block prepends to `PATH`, so the commands
+also resolve in non-interactive shells, scripts, CI steps, and coding-agent
+shells that inherit `PATH` but not sourced functions. Bash registration
 covers both `~/.bashrc` and `~/.bash_profile`; zsh completion preserves emoji
 labels and supports arrow-key selection. It enables zsh's standard selection
 menu only when the user has not already configured a global menu preference.

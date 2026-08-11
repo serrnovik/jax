@@ -1,0 +1,30 @@
+#!/bin/sh
+# Jax command shim. All Jax logic remains in PowerShell.
+#
+# Installed on PATH so `jax`, `jx`, and `jxs` also resolve in
+# non-interactive shells, scripts, CI steps, and coding-agent shells, which
+# inherit PATH but not sourced shell functions.
+
+jax_shim_self=$0
+while [ -L "$jax_shim_self" ]; do
+    jax_shim_link=$(readlink "$jax_shim_self")
+    case $jax_shim_link in
+        /*) jax_shim_self=$jax_shim_link ;;
+        *) jax_shim_self=$(dirname -- "$jax_shim_self")/$jax_shim_link ;;
+    esac
+done
+jax_shell_root=$(CDPATH= cd -- "$(dirname -- "$jax_shim_self")/.." && pwd) || exit 1
+
+jax_pwsh=$(command -v pwsh 2>/dev/null)
+if [ -z "$jax_pwsh" ] || [ ! -x "$jax_pwsh" ]; then
+    echo "jax: PowerShell 7+ (pwsh) is required." >&2
+    exit 127
+fi
+
+JAX_SHELL_ENTRYPOINT=jax
+# Stable per-terminal id: each invocation is a fresh pwsh, so Jax cannot
+# use its own PID to show a session-scoped notice only once.
+JAX_SHELL_SESSION=$PPID
+export JAX_SHELL_ENTRYPOINT JAX_SHELL_SESSION
+exec "$jax_pwsh" -NoLogo -NoProfile \
+    -File "$jax_shell_root/Jax.ShellLauncher.ps1" "$@"

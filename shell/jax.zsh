@@ -2,21 +2,17 @@
 typeset -g _jax_shell_root="${${(%):-%x}:A:h}"
 typeset -g _jax_pwsh="$(command -v pwsh 2>/dev/null)"
 
-_jax_invoke() {
-    if [[ -z "$_jax_pwsh" || ! -x "$_jax_pwsh" ]]; then
-        print -u2 "jax: PowerShell 7+ (pwsh) is required."
-        return 127
-    fi
-    local entry_point="$1"
-    shift
-    JAX_SHELL_ENTRYPOINT="$entry_point" \
-        "$_jax_pwsh" -NoLogo -NoProfile \
-        -File "$_jax_shell_root/Jax.ShellLauncher.ps1" "$@"
-}
+# jax, jx, and jxs are executable shims in $_jax_shell_root/bin, not shell
+# functions. PATH is inherited by non-interactive shells, scripts, CI steps,
+# and coding-agent shells; sourced functions are not. One command form then
+# works everywhere.
+if [[ -d "$_jax_shell_root/bin" && ":$PATH:" != *":$_jax_shell_root/bin:"* ]]; then
+    export PATH="$_jax_shell_root/bin:$PATH"
+fi
 
-jax() { _jax_invoke jax "$@" }
-jx() { _jax_invoke jx "$@" }
-jxs() { _jax_invoke jxs "$@" }
+# Releases before 0.1.11 defined jax/jx/jxs as functions delegating to a private
+# helper. Drop them so an older definition cannot shadow the shims.
+unfunction jax jx jxs 2>/dev/null || true
 
 _jax_zsh_completion() {
     local -a candidates display_labels

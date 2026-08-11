@@ -2,7 +2,11 @@ Describe "Jax CLI vault toggle" {
     It "Honors -novault (non-interactive)" {
         $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
         $scriptPath = Join-Path $repoRoot 'jax.ps1'
-        $fixtureRoot = Join-Path $repoRoot 'tests/fixtures/jax-client'
+        # The bob plugin refuses to run against a root that is not a git repo,
+        # so work on a copy we can initialize instead of the bare fixture.
+        $fixtureRoot = Join-Path $TestDrive 'jax-client'
+        Copy-Item -LiteralPath (Join-Path $repoRoot 'tests/fixtures/jax-client') -Destination $fixtureRoot -Recurse
+        & git -C $fixtureRoot init --quiet
 
         Push-Location $repoRoot
         try {

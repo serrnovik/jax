@@ -738,6 +738,36 @@ are rewritten to /jax/src/... for container execution.
   **State persistence**: `-env`, `-client`, `-scenario` persist to
   `.jax/state.yml` across runs. `-from`, `-to`, `-only` are ephemeral.
 
+  **Task and script parameters**: once the run is narrowed with `-only/-from/-to`,
+  the selected psake `properties{}` entries and `.ps1` `param()` entries become
+  real CLI parameters (with tab completion), and override the values coming from
+  the flow file's `args`.
+
+  A `[bool]` parameter is exposed as a **flag**, so it needs no value:
+
+  ```
+  jax run -e myenv -o MyTask -myFlag           # true
+  jax run -e myenv -o MyTask -myFlag:$false    # false
+  jax run -e myenv -o MyTask                   # whatever the properties{} block defaults to
+  ```
+
+  The older `-myFlag $true` / `-myFlag $false` spelling is still honored.
+
+  **Seeing what was actually passed**: the plan and `run-config_*.json` are built
+  *before* CLI params are merged, so neither shows them. Use a dry run:
+
+  ```
+  jax run -e myenv -o MyTask -myFlag -dryRun       # table: Name / Type / Value / Source
+  jax run -e myenv -o MyTask -myFlag -dryRunDeep   # same data under ResolvedParameters in the JSON
+  ```
+
+  `Source` is `cli` (this command line) > `args` (the flow file's `args:`) >
+  `config` (run-config / psake properties) > `default` (the `properties{}` value).
+  A CLI param the entity does not declare is listed as `cli (not declared by this
+  entity)` rather than silently dropped — that is how you catch a typo'd flag.
+  Only parameters the entity declares are printed, and sensitive key names
+  (`password`, `secret`, `token`, `apiKey`, …) come back as `[redacted]`.
+
 - jax plan
   Prints the run plan without executing. Equivalent to `jax run -plan`
   (legacy `-dryRunShort` still works).
@@ -789,6 +819,10 @@ Key functions:
 
 - Resolve-JaxScenarioItemToRunEntity
   Resolves a single scenario item using the registered resolvers.
+
+- Get-JaxEntityParameterPreview
+  Resolves the parameters an entity would receive (value + source) without running
+  it. Backs the `-dryRun`/`-dryRunDeep` parameter tables; redacts sensitive keys.
 
 - Expand-JaxPlaceholders
   Expands {{ }} substitutions using the internal MustachePlaceholders module.

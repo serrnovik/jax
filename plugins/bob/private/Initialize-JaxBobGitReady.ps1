@@ -41,7 +41,12 @@ function Initialize-JaxBobGitReady {
         }
     }
 
-    if (-not $promptInit -or -not $allowInit) {
+    # A prompt nobody can read is a prompt nobody can answer: when our output is
+    # captured (test harness, CI, `jax ... | tee`) asking would block forever on a
+    # question the caller never sees. Fail with the fix instead.
+    $canPrompt = ($null -ne $InputQueue -and $InputQueue.Count -gt 0) -or -not [Console]::IsOutputRedirected
+
+    if (-not $promptInit -or -not $allowInit -or -not $canPrompt) {
         throw "Git repo not initialized at '$RepoRoot'. Run 'git init' or set JAX_REPO_ROOT."
     }
 

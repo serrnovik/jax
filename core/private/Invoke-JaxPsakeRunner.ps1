@@ -31,33 +31,7 @@ function Invoke-JaxPsakeRunner {
         }
     }
 
-    $properties = @{}
-    $baseProps = $null
-    if ($Context.ContainsKey('PsakeProperties') -and $Context['PsakeProperties'] -is [System.Collections.IDictionary]) {
-        if ($null -eq $baseProps) {
-            $baseProps = $Context['PsakeProperties']
-        } else {
-            $baseProps = Merge-JaxHashtable -Base $baseProps -Overlay $Context['PsakeProperties'] @CommonParameters
-        }
-    }
-    if ($Context.ContainsKey('RunConfig') -and $Context['RunConfig'] -is [System.Collections.IDictionary]) {
-        if ($null -eq $baseProps) {
-            $baseProps = $Context['RunConfig']
-        } else {
-            # precedence: psake properties override run-config defaults
-            $baseProps = Merge-JaxHashtable -Base $Context['RunConfig'] -Overlay $baseProps @CommonParameters
-        }
-    }
-    if ($null -ne $baseProps) {
-        $properties = Merge-JaxHashtable -Base @{} -Overlay $baseProps @CommonParameters
-    }
-    if ($Entity['Args'] -is [System.Collections.IDictionary]) {
-        $properties = Merge-JaxHashtable -Base $properties -Overlay $Entity['Args'] @CommonParameters
-    }
-    # CLI DynamicParam-bound task params: apply last (highest precedence)
-    if ($Context.ContainsKey('CliArgs') -and $Context['CliArgs'] -is [System.Collections.IDictionary]) {
-        $properties = Merge-JaxHashtable -Base $properties -Overlay $Context['CliArgs'] @CommonParameters
-    }
+    $properties = Resolve-JaxPsakeProperties -Entity $Entity -Context $Context -CommonParameters $CommonParameters
 
     $taskListDisplay = if ($taskList.Count -gt 0) { $taskList -join ', ' } else { '<default>' }
     $commandPreview = "Invoke-psake -buildFile `"$buildFile`" -taskList @('$taskListDisplay')"

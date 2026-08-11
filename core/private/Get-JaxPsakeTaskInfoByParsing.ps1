@@ -187,9 +187,29 @@ function Get-JaxPsakeTaskInfoByParsing {
     }
 
     $parameters = @()
-    $propertiesMatch = [regex]::Match($contentRaw, '(?ms)properties\s*\{(.*?)\}')
-    if ($propertiesMatch.Success) {
-        $block = $propertiesMatch.Groups[1].Value
+    $seenParameterNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    # Locate the properties{} block through the AST rather than a regex. A
+    # non-greedy `properties\s*\{(.*?)\}` ends the block at the FIRST closing
+    # brace anywhere in the file, so a single brace inside the block — in a
+    # comment (`-properties @{ Foo = $true }`) or in a hashtable default —
+    # truncated the capture and every property below that line silently stopped
+    # being forwarded to psake. No warning: the CLI flag simply bound nothing.
+    # The AST knows where the scriptblock really ends.
+    $propertiesBlocks = $scriptAst.FindAll({
+            param($ast)
+            $ast -is [System.Management.Automation.Language.CommandAst] -and
+            $ast.CommandElements.Count -gt 1 -and
+            $ast.CommandElements[0] -is [System.Management.Automation.Language.StringConstantExpressionAst] -and
+            $ast.CommandElements[0].Value -ieq 'properties' -and
+            $ast.CommandElements[1] -is [System.Management.Automation.Language.ScriptBlockExpressionAst]
+        }, $true)
+
+    foreach ($propertiesBlock in $propertiesBlocks) {
+        # Inner text of the scriptblock, braces excluded.
+        $blockAst = $propertiesBlock.CommandElements[1].ScriptBlock
+        $block = $blockAst.Extent.Text
+        if ($block.StartsWith('{')) { $block = $block.Substring(1) }
+        if ($block.EndsWith('}')) { $block = $block.Substring(0, $block.Length - 1) }
         $lines = $block -split "(\r\n|\n)"
         foreach ($line in $lines) {
             $trimmed = ($line -replace '#.*$', '').Trim()
@@ -202,6 +222,12 @@ function Get-JaxPsakeTaskInfoByParsing {
             }
             $paramName = $paramMatch.Groups['name'].Value
             if ([string]::IsNullOrWhiteSpace($paramName)) {
+                continue
+            }
+            # psake allows several properties{} blocks per file and we now read
+            # all of them, so first declaration wins rather than emitting the
+            # same parameter twice in the resolved-parameter preview.
+            if (-not $seenParameterNames.Add($paramName)) {
                 continue
             }
             $typeName = if ($paramMatch.Groups['type'].Success) { $paramMatch.Groups['type'].Value.Trim() } else { 'System.Object' }
