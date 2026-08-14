@@ -1,0 +1,32 @@
+Jax.psd1
+  h_813cbbe43c4b46 3
+VERSION
+  h_813cbbe43c4b46 1
+core/private/Initialize-JaxCliParameterRegistry.ps1
+  h_813cbbe43c4b46 39-43
+core/public/Update-JaxState.ps1
+  h_813cbbe43c4b46 6,26-29
+distribution-manifest.psd1
+  h_813cbbe43c4b46 2
+docs/README.md
+  h_813cbbe43c4b46 549-571
+jax.ps1
+  h_813cbbe43c4b46 473-474,497,503,1140-1150,1351-1355,1401-1410
+plugins/bob/private/Resolve-JaxBobUserFiles.ps1
+  h_813cbbe43c4b46 17-20,45-47
+tests/Jax.Core.State.Tests.ps1
+  h_813cbbe43c4b46 43-59
+tests/Jax.Plugin.Bob.Tests.ps1
+  h_813cbbe43c4b46 591-608
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "a8f9c1f8af3115b63a927dd79617337c7428ecff",
+  "prompts": {},
+  "humans": {
+    "h_813cbbe43c4b46": {
+      "author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
