@@ -1,0 +1,34 @@
+Jax.psd1
+  h_813cbbe43c4b46 3
+VERSION
+  h_813cbbe43c4b46 1
+core/private/Get-JaxDefaultConfig.ps1
+  h_813cbbe43c4b46 66
+core/public/Convert-JaxConfigForSave.ps1
+  h_813cbbe43c4b46 169
+distribution-manifest.psd1
+  h_813cbbe43c4b46 2
+docs/README.md
+  h_813cbbe43c4b46 408-410,505,520,526-529,534-554
+plugins/bob/private/Get-JaxBobUserName.ps1
+  h_813cbbe43c4b46 1-25
+plugins/bob/private/Resolve-JaxBobUserFiles.ps1
+  h_813cbbe43c4b46 1-50
+plugins/bob/public/Get-JaxBobLayerConfig.ps1
+  h_813cbbe43c4b46 18-24,68,70-72,87
+plugins/bob/public/Get-JaxBobPluginDefaults.ps1
+  h_813cbbe43c4b46 18
+tests/Jax.Plugin.Bob.Tests.ps1
+  h_813cbbe43c4b46 493-590
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "678a593ab53f1ff40114864fe80c18f6a5640dce",
+  "prompts": {},
+  "humans": {
+    "h_813cbbe43c4b46": {
+      "author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
