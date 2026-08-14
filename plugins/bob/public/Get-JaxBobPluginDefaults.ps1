@@ -15,6 +15,7 @@ function Get-JaxBobPluginDefaults {
         }
         layers                 = @{
             repoCommonPatterns   = @('configs/jax/common/*.yml', 'configs/jax/common/*.yaml')
+            userPatterns          = @('configs/jax/profiles/{user}.yml', 'configs/jax/profiles/{user}.yaml')
             localOverridePatterns = @('configs/jax/local-override*.yml', 'configs/jax/local-override*.yaml')
             ciOverridePatterns    = @('configs/jax/ci-*.yml', 'configs/jax/ci-*.yaml')
             flavourDir            = 'configs/jax-flavours'

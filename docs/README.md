@@ -405,6 +405,9 @@ jax:
           repoCommonPatterns:
             - "configs/jax/common/*.yml"
             - "configs/jax/common/*.yaml"
+          userPatterns:
+            - "configs/jax/profiles/{user}.yml"
+            - "configs/jax/profiles/{user}.yaml"
           localOverridePatterns:
             - "configs/jax/local-override*.yml"
             - "configs/jax/local-override*.yaml"
@@ -499,7 +502,7 @@ Layered merge order (highest wins):
 
 1. CLI overrides (passed as `Context.RunConfigOverrides`)
 2. User run-config (passed as `Context.RunConfigUser`)
-3. Repo run-config (includes common/local/ci/named/flavour layers)
+3. Repo run-config (includes common/user/local/ci/named/flavour layers)
 4. Env run-config (passed as `Context.RunConfigEnv`)
 5. configured run-config file (`jaxfile` by default)
 6. Plugin defaults (`plugins.config.bob.defaults`)
@@ -514,18 +517,40 @@ using `-override` or `-overrides` (comma-separated).
 To bypass git checks in non-git contexts, set
 `plugins.config.bob.git.require: false` (not recommended for normal use).
 
-## Config Layers (Repo, Local, CI, Flavour)
+## Config Layers (Repo, User, Local, CI, Flavour)
 
 Jax can merge additional run-config layers from conventional locations. These
 layers sit above the env-specific run-config and are merged in this order:
 
 1. `configs/jax/common/*.yml`
-2. `configs/jax/local-override*.yml`
-3. `configs/jax/ci-*.yml` (only when CI is detected)
-4. `configs/jax-flavours/<name>.yml` (when `Context.Flavour` is set)
+2. `configs/jax/profiles/<user>.yml`
+3. `configs/jax/local-override*.yml`
+4. `configs/jax/ci-*.yml` (only when CI is detected)
+5. `configs/jax-flavours/<name>.yml` (when `Context.Flavour` is set)
 
 CI detection defaults to the generic `CI` environment variable, or you can
 force it with `Context.Ci = $true`.
+
+### The user layer
+
+A repository has three kinds of non-default configuration, and the middle one
+used to have nowhere to live:
+
+| Layer | Tracked | Applies to |
+|---|---|---|
+| `common` | yes | everyone |
+| `profiles/<user>` | yes | one person, on every machine they use |
+| `local-override*` | no (git-ignored) | one machine |
+
+Because the user layer is tracked and selected by identity, a whole team can
+keep profiles side by side and each developer loads only their own — and your
+own settings reach your other desktop through git rather than by hand.
+
+`userPatterns` carries a `{user}` token. Identity is `JAX_USER`, else the OS
+user name (`USER` / `USERNAME` / `LOGNAME`), lowercased so the same person
+resolves the same way on Windows and macOS. `Context.User` overrides both.
+Nothing is loaded when the current user has no profile, so the layer costs
+nothing until somebody adds a file.
 
 All of these paths and patterns are configurable under
 `plugins.config.bob.layers`.

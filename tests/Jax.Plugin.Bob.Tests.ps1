@@ -490,3 +490,101 @@ Describe 'Bob sceny wrapper entity' {
         @($sceny.Entities).Count | Should -Be 1
     }
 }
+
+Describe 'Get-JaxBobLayerConfig user layer' {
+    BeforeAll {
+        function New-JaxUserLayerFixture {
+            param([hashtable]$Values)
+
+            $root = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Path (Join-Path $root 'configs/jax/common') -Force | Out-Null
+            New-Item -ItemType Directory -Path (Join-Path $root 'configs/jax/profiles') -Force | Out-Null
+
+            $files = @{}
+            foreach ($key in $Values.Keys) {
+                $path = switch ($key) {
+                    'common' { Join-Path $root 'configs/jax/common/base.yml' }
+                    'local' { Join-Path $root 'configs/jax/local-override-machine.yml' }
+                    default { Join-Path $root "configs/jax/profiles/$key.yml" }
+                }
+                New-Item -ItemType File -Path $path -Force | Out-Null
+                $files[$path] = $Values[$key]
+            }
+
+            return @{ Root = $root; Files = $files }
+        }
+
+        $script:UserLayerPluginConfig = @{
+            layers = @{
+                repoCommonPatterns    = @('configs/jax/common/*.yml')
+                userPatterns          = @('configs/jax/profiles/{user}.yml')
+                localOverridePatterns = @('configs/jax/local-override*.yml')
+            }
+        }
+    }
+
+    It 'loads only the profile belonging to the current user' {
+        $fixture = New-JaxUserLayerFixture -Values @{
+            common = @{ value = 'common'; who = 'nobody' }
+            sno    = @{ who = 'sno' }
+            kim    = @{ who = 'kim' }
+        }
+        $reader = { param($path) $fixture.Files[$path] }
+
+        $result = Get-JaxBobLayerConfig -RepoRoot $fixture.Root -PluginConfig $script:UserLayerPluginConfig -Context @{ User = 'sno' } -YamlReader $reader
+        $result.Config.who | Should -Be 'sno'
+        $result.Config.value | Should -Be 'common'
+        @($result.Paths.user).Count | Should -Be 1
+        @($result.Paths.user)[0] | Should -Match 'sno\.yml$'
+
+        Remove-Item -Path $fixture.Root -Recurse -Force
+    }
+
+    It 'is overridden by this machine, and overrides the team default' {
+        $fixture = New-JaxUserLayerFixture -Values @{
+            common = @{ a = 'common'; b = 'common' }
+            sno    = @{ a = 'user'; b = 'user' }
+            local  = @{ b = 'local' }
+        }
+        $reader = { param($path) $fixture.Files[$path] }
+
+        $result = Get-JaxBobLayerConfig -RepoRoot $fixture.Root -PluginConfig $script:UserLayerPluginConfig -Context @{ User = 'sno' } -YamlReader $reader
+        $result.Config.a | Should -Be 'user'
+        $result.Config.b | Should -Be 'local'
+
+        Remove-Item -Path $fixture.Root -Recurse -Force
+    }
+
+    It 'falls back to JAX_USER when the context names nobody, case-insensitively' {
+        $fixture = New-JaxUserLayerFixture -Values @{
+            common = @{ who = 'nobody' }
+            sno    = @{ who = 'sno' }
+        }
+        $reader = { param($path) $fixture.Files[$path] }
+
+        $previous = $env:JAX_USER
+        try {
+            $env:JAX_USER = 'SNO'
+            $result = Get-JaxBobLayerConfig -RepoRoot $fixture.Root -PluginConfig $script:UserLayerPluginConfig -YamlReader $reader
+            $result.Config.who | Should -Be 'sno'
+        } finally {
+            $env:JAX_USER = $previous
+        }
+
+        Remove-Item -Path $fixture.Root -Recurse -Force
+    }
+
+    It 'loads nothing when the current user has no profile' {
+        $fixture = New-JaxUserLayerFixture -Values @{
+            common = @{ who = 'nobody' }
+            kim    = @{ who = 'kim' }
+        }
+        $reader = { param($path) $fixture.Files[$path] }
+
+        $result = Get-JaxBobLayerConfig -RepoRoot $fixture.Root -PluginConfig $script:UserLayerPluginConfig -Context @{ User = 'sno' } -YamlReader $reader
+        $result.Config.who | Should -Be 'nobody'
+        @($result.Paths.user).Count | Should -Be 0
+
+        Remove-Item -Path $fixture.Root -Recurse -Force
+    }
+}

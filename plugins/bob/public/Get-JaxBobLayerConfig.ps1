@@ -15,6 +15,13 @@ function Get-JaxBobLayerConfig {
     }
 
     $repoCommonFiles = Resolve-JaxBobLayerFiles -Patterns $layers['repoCommonPatterns'] -RepoRoot $RepoRoot @commonPSBoundParameters
+
+    $userName = $null
+    if ($Context.ContainsKey('User')) {
+        $userName = [string]$Context['User']
+    }
+    $userFiles = Resolve-JaxBobUserFiles -Layers $layers -RepoRoot $RepoRoot -UserName $userName @commonPSBoundParameters
+
     $localOverrideFiles = Resolve-JaxBobLayerFiles -Patterns $layers['localOverridePatterns'] -RepoRoot $RepoRoot @commonPSBoundParameters
 
     $ciOverrideFiles = @()
@@ -58,8 +65,11 @@ function Get-JaxBobLayerConfig {
 
     $config = @{}
     $allPaths = @()
-    Write-Debug ("Get-JaxBobLayerConfig: repoCommon={0} localOverride={1} ciOverride={2} namedOverride={3} flavour={4}" -f @($repoCommonFiles).Count, @($localOverrideFiles).Count, @($ciOverrideFiles).Count, @($namedOverrideFiles).Count, @($flavourFiles).Count)
+    Write-Debug ("Get-JaxBobLayerConfig: repoCommon={0} user={1} localOverride={2} ciOverride={3} namedOverride={4} flavour={5}" -f @($repoCommonFiles).Count, @($userFiles).Count, @($localOverrideFiles).Count, @($ciOverrideFiles).Count, @($namedOverrideFiles).Count, @($flavourFiles).Count)
     $config = Merge-JaxHashtable -Base $config -Overlay (Read-JaxBobLayerConfig -Files $repoCommonFiles -RepoRoot $RepoRoot -YamlReader $YamlReader -UsedPaths ([ref]$allPaths) @commonPSBoundParameters)
+    # Who you are sits between the team's defaults and this machine's: a profile
+    # follows you to your other desktop, a local override follows neither.
+    $config = Merge-JaxHashtable -Base $config -Overlay (Read-JaxBobLayerConfig -Files $userFiles -RepoRoot $RepoRoot -YamlReader $YamlReader -UsedPaths ([ref]$allPaths) @commonPSBoundParameters)
     $config = Merge-JaxHashtable -Base $config -Overlay (Read-JaxBobLayerConfig -Files $localOverrideFiles -RepoRoot $RepoRoot -YamlReader $YamlReader -UsedPaths ([ref]$allPaths) @commonPSBoundParameters)
     $config = Merge-JaxHashtable -Base $config -Overlay (Read-JaxBobLayerConfig -Files $ciOverrideFiles -RepoRoot $RepoRoot -YamlReader $YamlReader -UsedPaths ([ref]$allPaths) @commonPSBoundParameters)
     if ($namedOverrideFiles.Count -gt 0) {
@@ -74,6 +84,7 @@ function Get-JaxBobLayerConfig {
         AllPaths = @($allPaths | Sort-Object -Unique)
         Paths  = @{
             repoCommon   = $repoCommonFiles
+            user         = $userFiles
             localOverride = $localOverrideFiles
             ciOverride   = $ciOverrideFiles
             namedOverride = $namedOverrideFiles

@@ -166,6 +166,7 @@ function Convert-JaxConfigForSave {
                 }
                 layers                = [ordered]@{
                     repoCommonPatterns    = Get-JaxListValue $layers['repoCommonPatterns']
+                    userPatterns          = Get-JaxListValue $layers['userPatterns']
                     localOverridePatterns = Get-JaxListValue $layers['localOverridePatterns']
                     ciOverridePatterns    = Get-JaxListValue $layers['ciOverridePatterns']
                     flavourDir            = $layers['flavourDir']
