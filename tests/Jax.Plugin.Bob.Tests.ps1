@@ -588,3 +588,21 @@ Describe 'Get-JaxBobLayerConfig user layer' {
         Remove-Item -Path $fixture.Root -Recurse -Force
     }
 }
+
+Describe 'Get-JaxBobLayerConfig user layer identity' {
+    It 'accepts a name in any case, as the -user CLI flag supplies it' {
+        $root = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path (Join-Path $root 'configs/jax/profiles') -Force | Out-Null
+        $profileFile = Join-Path $root 'configs/jax/profiles/sno.yml'
+        New-Item -ItemType File -Path $profileFile -Force | Out-Null
+        $reader = { param($path) @{ who = 'sno' } }
+
+        $pluginConfig = @{ layers = @{ userPatterns = @('configs/jax/profiles/{user}.yml') } }
+        foreach ($spelling in @('sno', 'SNO', ' Sno ')) {
+            $result = Get-JaxBobLayerConfig -RepoRoot $root -PluginConfig $pluginConfig -Context @{ User = $spelling } -YamlReader $reader
+            $result.Config.who | Should -Be 'sno' -Because "'$spelling' should resolve the same profile"
+        }
+
+        Remove-Item -Path $root -Recurse -Force
+    }
+}

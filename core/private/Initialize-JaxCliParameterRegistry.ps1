@@ -36,6 +36,11 @@ function Initialize-JaxCliParameterRegistry {
     Register-JaxCliParameter -Name 'noScriptsDiscovery' -Aliases @('noScripts') -Type 'switch' -Scope 'core'
     Register-JaxCliParameter -Name 'noScenarioDiscovery' -Aliases @('noSceny') -Type 'switch' -Scope 'core'
     Register-JaxCliParameter -Name 'noSavedSettings' -Aliases @('noSave', 'nss') -Type 'switch' -Scope 'core'
+    # Which configs/jax/profiles/<user>.yml to load.
+    # -user persists (like env/client/scenario) until 'settings unset user';
+    # -asUser is the one-run form and is never written to state.
+    Register-JaxCliParameter -Name 'user' -Aliases @() -Type 'string' -Scope 'core'
+    Register-JaxCliParameter -Name 'asUser' -Aliases @() -Type 'string' -Scope 'core'
     Register-JaxCliParameter -Name 'override' -Aliases @() -Type 'string' -Scope 'core'
     Register-JaxCliParameter -Name 'overrides' -Aliases @() -Type 'string' -Scope 'core'
     Register-JaxCliParameter -Name 'docker' -Aliases @('d') -Type 'switch' -Scope 'core'

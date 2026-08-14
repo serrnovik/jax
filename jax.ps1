@@ -470,6 +470,8 @@ begin {
         Write-Host "  -Verbose         Always shows full output regardless of quiet setting."
         Write-Host "  -o / -only A,B   Run one selector, or comma/array selectors as an ad-hoc scenario."
         Write-Host "  -C / -RepoRoot   Run against an explicit repository without changing directory."
+        Write-Host "  -user <name>     Load configs/jax/profiles/<name>.yml; persists until 'jax settings unset user'."
+        Write-Host "  -asUser <name>   Same, for ONE run only (nothing is persisted)."
         Write-Host ""
         Write-Host "Shortcut flags:"
         Write-Host "  -sc <name>   Run a saved shortcut (does not update saved env in .jax/state.yml)"
@@ -492,11 +494,13 @@ begin {
         Write-Host "  show                    Print current persisted settings (.jax/state.yml)."
         Write-Host "  reset                   Remove .jax/state.yml for the current repo."
         Write-Host "  set <key> [<value>]     Persist a setting (e.g. 'set quiet on', 'set quiet off')."
+        Write-Host "  unset <key>             Forget one setting, keeping the rest."
         Write-Host ""
         Write-Host "Known keys (core scope):"
         Write-Host "  quiet      on|off|true|false   Minimal CLI output (RTK-friendly)."
         Write-Host "  verbose    on|off              Default verbose preference."
         Write-Host "  docker     on|off              Force container runner by default."
+        Write-Host "  user       <name>              Load configs/jax/profiles/<name>.yml instead of your OS user's."
     }
 
     function Show-JaxInfo {
@@ -1133,6 +1137,17 @@ begin {
         if ($resolved.ContainsKey('noCache') -and $resolved.noCache) {
             $context['NoCache'] = $true
         }
+        # -asUser wins for this run without touching the persisted -user.
+        $profileUser = $null
+        if ($resolved.ContainsKey('asUser') -and -not [string]::IsNullOrWhiteSpace([string]$resolved['asUser'])) {
+            $profileUser = [string]$resolved['asUser']
+        } elseif ($resolved.ContainsKey('user') -and -not [string]::IsNullOrWhiteSpace([string]$resolved['user'])) {
+            $profileUser = [string]$resolved['user']
+        }
+        if (-not [string]::IsNullOrWhiteSpace($profileUser)) {
+            $context['User'] = $profileUser.Trim()
+        }
+
         $overrideList = @()
         if ($resolved.ContainsKey('override')) {
             $overrideList += Convert-JaxCliListValue -Value $resolved.override
@@ -1333,6 +1348,11 @@ $hintText
                 client   = $resolved['client']
                 scenario = $resolved['scenario']
             }
+            # -user is an identity, not a selector: it persists until it is
+            # changed or unset. -asUser is deliberately absent here.
+            if ($resolved.ContainsKey('user') -and -not [string]::IsNullOrWhiteSpace([string]$resolved['user'])) {
+                $coreUpdate['user'] = ([string]$resolved['user']).Trim()
+            }
             # IMPORTANT: never persist from/to/only. Those are execution selectors and
             # must remain ephemeral to avoid "stale slicing" surprises across runs.
             # Plugins may persist their own settings under their own namespace if needed
@@ -1377,6 +1397,16 @@ $hintText
                         Update-JaxState -RepoRoot $repoRoot -Updates @{ core = @{ $key = $rawValue } } @commonParams | Out-Null
                         Write-Host ("ok: core.{0}={1}" -f $key, $rawValue)
                     }
+                }
+                'unset' {
+                    if ($CommandArgs.Count -lt 2) {
+                        Write-Host "Usage: jax settings unset <key>"
+                        Show-JaxSettingsHelp
+                        return
+                    }
+                    $key = [string]$CommandArgs[1]
+                    Update-JaxState -RepoRoot $jaxRepoRoot -Updates @{} -RemoveCoreKeys @($key) @commonParams | Out-Null
+                    Write-Host ("ok: core.{0} unset" -f $key)
                 }
                 default {
                     Show-JaxSettingsHelp

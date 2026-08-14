@@ -3,6 +3,7 @@ function Update-JaxState {
     param (
         [Parameter(Mandatory = $true)]
         [System.Collections.IDictionary] $Updates,
+        [string[]] $RemoveCoreKeys = @(),
         [string] $RepoRoot,
         [switch] $NoSavedSettings
     )
@@ -22,8 +23,10 @@ function Update-JaxState {
     # Plugins may persist their own settings under their own namespace (e.g. plugins.bob.*, plugins.test.*).
     if ($merged -is [System.Collections.IDictionary] -and $merged.Contains('core') -and $merged['core'] -is [System.Collections.IDictionary]) {
         $core = $merged['core']
-        foreach ($k in @('from', 'to', 'only')) {
-            if ($core.Contains($k)) {
+        # A merge cannot express "forget this": removals are named explicitly,
+        # so `settings unset <key>` does not have to reset the whole file.
+        foreach ($k in @('from', 'to', 'only') + @($RemoveCoreKeys)) {
+            if (-not [string]::IsNullOrWhiteSpace([string]$k) -and $core.Contains($k)) {
                 $core.Remove($k) | Out-Null
             }
         }

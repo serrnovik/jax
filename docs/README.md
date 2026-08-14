@@ -546,10 +546,29 @@ Because the user layer is tracked and selected by identity, a whole team can
 keep profiles side by side and each developer loads only their own — and your
 own settings reach your other desktop through git rather than by hand.
 
-`userPatterns` carries a `{user}` token. Identity is `JAX_USER`, else the OS
-user name (`USER` / `USERNAME` / `LOGNAME`), lowercased so the same person
-resolves the same way on Windows and macOS. `Context.User` overrides both.
-Nothing is loaded when the current user has no profile, so the layer costs
+`userPatterns` carries a `{user}` token. Identity is resolved in this order,
+first non-empty wins, and the result is trimmed and lowercased so the same
+person resolves the same way on Windows and macOS:
+
+1. `-asUser <name>` — this run only
+2. `-user <name>` — persisted, or whatever a previous `-user` persisted
+3. `JAX_USER`
+4. `USER` / `USERNAME` / `LOGNAME`
+
+```
+jax run -env acme/dev -user kim       # from now on, load configs/jax/profiles/kim.yml
+jax run -env acme/dev -asUser ada     # just this run, leaving the persisted answer alone
+jax settings show                     # what is persisted (core.user)
+jax settings unset user               # back to JAX_USER / the OS user
+```
+
+`-user` persists to `.jax/state.yml` like `env` and `client` do, because an
+identity is not an execution selector: it should survive until you change it.
+`-asUser` is the escape hatch for a single run and is never written to state.
+`jax settings set user <name>` writes the same value without running anything,
+and `jax settings reset` clears the whole file rather than the one key.
+
+Nothing is loaded when the resolved user has no profile, so the layer costs
 nothing until somebody adds a file.
 
 All of these paths and patterns are configurable under

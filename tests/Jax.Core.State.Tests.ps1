@@ -40,3 +40,20 @@ Describe 'Jax state' {
         Remove-Item -Path $tempRoot -Recurse -Force
     }
 }
+
+Describe 'Jax state removals' {
+    It 'forgets one key and keeps the rest' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $tempRoot | Out-Null
+
+        Update-JaxState -RepoRoot $tempRoot -Updates @{ core = @{ env = 'dev'; user = 'sno'; quiet = $true } } | Out-Null
+        Update-JaxState -RepoRoot $tempRoot -Updates @{} -RemoveCoreKeys @('user') | Out-Null
+
+        $state = Get-JaxState -RepoRoot $tempRoot
+        $state.core.Contains('user') | Should -BeFalse
+        $state.core.env | Should -Be 'dev'
+        $state.core.quiet | Should -BeTrue
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+}

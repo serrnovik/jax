@@ -14,9 +14,10 @@
     other desktop through git and a teammate can see why your runs differ; it is
     selected by identity, so having everyone's file checked in loads only yours.
 
-    Patterns carry a {user} token. Identity is JAX_USER, else the OS user name,
-    lowercased -- an explicit value first so a shared account or a CI box can
-    say who it is standing in for.
+    Patterns carry a {user} token. Identity is the CLI's -user, else JAX_USER,
+    else the OS user name, lowercased -- an explicit value first so a shared
+    account, a CI box, or somebody checking a teammate's setup can say who it
+    is standing in for.
 #>
 function Resolve-JaxBobUserFiles {
     [CmdletBinding()]
@@ -41,6 +42,9 @@ function Resolve-JaxBobUserFiles {
     if ([string]::IsNullOrWhiteSpace($UserName)) {
         return @()
     }
+    # Normalized here as well as in Get-JaxBobUserName, so `-user SNO` and a
+    # `USERNAME=Sno` machine resolve the same file as `sno`.
+    $UserName = $UserName.Trim().ToLowerInvariant()
 
     $resolvedPatterns = @($patterns | ForEach-Object {
         $_ -replace '\{user\}', $UserName -replace '\{USER\}', $UserName
