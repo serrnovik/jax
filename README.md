@@ -118,7 +118,31 @@ See [consumer onboarding](docs/CONSUMER-ONBOARDING.md) for configuration ownersh
 
 ## Update or uninstall
 
-Update the Gallery package:
+```powershell
+jax update            # prompt, then install the latest release into ~/.jax/module
+jax update --check    # report versions and where they came from, change nothing
+jax update --yes      # no prompt
+jax update --force    # bypass the 24h version cache and reinstall
+```
+
+`jax update` targets `~/.jax/module`, because that is the only copy the `jax`,
+`jx`, and `jxs` shims load — `shell/Jax.ShellLauncher.ps1` imports it by path.
+An `Update-PSResource Jax` that lands somewhere on `PSModulePath` updates a copy
+none of them ever run, so if such a copy exists `jax update` says so and offers
+to remove it: a bare `Import-Module Jax` resolves to that one instead.
+
+The downloaded package installs itself by running its own `Install-Jax.ps1`, so
+staging, backup, manifest validation, and shell integration all come from the
+release being installed. `Build-JaxPackage.ps1` stamps `Origin = Gallery` into
+`INSTALLATION.json` and the installer carries it forward, which is how Jax knows
+whether the installed copy came from a release or from your checkout. Installing
+over a checkout-built copy is called out before it happens.
+
+A local build **newer** than the published release is normal while working on
+Jax, and is reported as current. Same version, no warning either.
+
+Updating the Gallery copy directly still works, and is the right move when you
+installed with `Install-PSResource` and do not use `~/.jax/module`:
 
 ```powershell
 Update-PSResource Jax -Scope CurrentUser -Repository PSGallery -TrustRepository
@@ -135,8 +159,11 @@ per shell session:
 
 ```text
   Jax 0.1.12 is available (you have 0.1.11).
-  Update: Update-PSResource Jax -Scope CurrentUser -Repository PSGallery -TrustRepository
+  Update: jax update
 ```
+
+The second line follows the install: a source checkout is told to `git pull,
+then ./Install-Jax.ps1`, anything else is told to run `jax update`.
 
 The hint reads only `~/.jax/update-check.json`, so it never waits on the
 network; a stale cache is refreshed by a detached background process and used

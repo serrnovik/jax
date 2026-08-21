@@ -782,10 +782,25 @@ are rewritten to /jax/src/... for container execution.
   **State persistence**: `-env`, `-client`, `-scenario` persist to
   `.jax/state.yml` across runs. `-from`, `-to`, `-only` are ephemeral.
 
+  **`-client` and a qualified `-env`**: `-client` only supplies the client half
+  of `<client>/<env>`, so it is never read once the environment is fully
+  qualified. Passing both with different clients is refused rather than resolved
+  silently in favour of `-env`. Only a `-client` typed on the command line is
+  checked; one restored from `.jax/state.yml` is left alone.
+
   **Task and script parameters**: once the run is narrowed with `-only/-from/-to`,
   the selected psake `properties{}` entries and `.ps1` `param()` entries become
   real CLI parameters (with tab completion), and override the values coming from
   the flow file's `args`.
+
+  **Names Jax keeps for itself**: `env`, `client`, `scenario`, `from`, `to`,
+  `only`, `noBuild`, `buildChainOnly`, `noCache`, `Detailed`, the shortcut flags,
+  and the vault/coverage flags are bound by Jax before task parameters are, so a
+  `properties{}` entry or `param()` entry of the same name can never be set from
+  the command line. Jax warns when a planned entity declares such a name, and
+  fails the run outright if you pass that flag, rather than executing the task
+  with its default as though the override had arrived. Rename the parameter
+  (`client` → `mcpClient`), or set it through the flow file's `args:`.
 
   A `[bool]` parameter is exposed as a **flag**, so it needs no value:
 
@@ -824,6 +839,17 @@ are rewritten to /jax/src/... for container execution.
 
 - jax settings reset
   Removes `.jax/state.yml` for the current repo.
+
+- jax update [--check] [--yes] [--force]
+  Updates the managed install at `~/.jax/module` to the latest PowerShell
+  Gallery release. That path is the only copy the `jax`/`jx`/`jxs` shims load,
+  so an `Update-PSResource Jax` that lands on `PSModulePath` updates something
+  none of them run — if such a copy exists this reports it and offers to remove
+  it. `--check` reports and changes nothing. A local build newer than the
+  published release is reported as current, not as a problem.
+
+  `update` is a Jax command, so it shadows a task of the same name; reach that
+  one with `jax run -only update`.
 
 ## Logs
 

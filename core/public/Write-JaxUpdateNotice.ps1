@@ -83,9 +83,22 @@ function Write-JaxUpdateNotice {
         Save-JaxUpdateNoticeState -Path $stateFile -State $state `
             -NotifiedSession $sessionKey -NotifiedVersion $latestVersion.ToString()
 
+        # The update command depends on how this copy was installed. Update-PSResource
+        # only knows about copies PSResourceGet installed; aimed at ~/.jax/module it
+        # either errors or updates a copy the `jx` shim never loads. Guarded, because
+        # the notice is the point and the tailored command is the garnish - a failed
+        # probe must not swallow "a new version exists". Gallery copies are not
+        # enumerated here: PSModulePath is far too slow to walk on every run.
+        $install = try { Get-JaxInstallInfo -RuntimeRoot $RuntimeRoot } catch { $null }
+
         Write-Host ''
         Write-Host ("  Jax {0} is available (you have {1})." -f $latestVersion, $currentVersion) -ForegroundColor Cyan
-        Write-Host '  Update: Update-PSResource Jax -Scope CurrentUser -Repository PSGallery -TrustRepository' -ForegroundColor DarkGray
+        if ($install -and $install.Flavour -eq 'Repo') {
+            Write-Host ("  You are running from a checkout at {0}" -f $install.RuntimeRoot) -ForegroundColor DarkGray
+            Write-Host '  Update: git pull, then ./Install-Jax.ps1' -ForegroundColor DarkGray
+        } else {
+            Write-Host '  Update: jax update' -ForegroundColor DarkGray
+        }
     } catch {
         # An update hint must never slow down, interrupt, or fail a Jax run.
     }

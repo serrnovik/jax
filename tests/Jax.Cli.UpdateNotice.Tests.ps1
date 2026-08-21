@@ -46,9 +46,43 @@ Describe 'Write-JaxUpdateNotice' {
         $second = Get-JaxTestNotice -CachePath $cache -StatePath $state
 
         $first | Should -Match 'Jax 99\.0\.0 is available'
-        $first | Should -Match 'Update-PSResource Jax'
+        # The notice runs against the source checkout here, so it must say git,
+        # not offer a Gallery command that would update a different copy.
+        $first | Should -Match 'git pull, then \./Install-Jax\.ps1'
         $first | Should -Match ([regex]::Escape($script:currentVersion.ToString()))
         $second | Should -BeNullOrEmpty
+    }
+
+    It 'points a copy installed under ~/.jax/module at `jax update`' {
+        # Update-PSResource only knows about copies PSResourceGet installed. Aimed
+        # at ~/.jax/module it either errors or updates a copy the jx shim never
+        # loads, which is the whole reason the command is chosen per install.
+        $env:JAX_SHELL_SESSION = 'test-managed-flavour'
+        $cache = New-JaxTestCache
+        $state = Join-Path $script:testRoot 'state-managed.json'
+
+        $output = InModuleScope Jax.Core -Parameters @{ Root = $script:sourceRoot; Cache = $cache; State = $state } {
+            param($Root, $Cache, $State)
+            Mock Get-JaxInstallInfo { [pscustomobject]@{ Flavour = 'Manual'; RuntimeRoot = $Root; UpdateCommand = 'jax update' } }
+            (& { Write-JaxUpdateNotice -RuntimeRoot $Root -CachePath $Cache -StatePath $State -Force } 6>&1 | Out-String)
+        }
+
+        $output | Should -Match 'jax update'
+        $output | Should -Not -Match 'Update-PSResource'
+    }
+
+    It 'still announces the version when install detection fails' {
+        $env:JAX_SHELL_SESSION = 'test-broken-probe'
+        $cache = New-JaxTestCache
+        $state = Join-Path $script:testRoot 'state-broken.json'
+
+        $output = InModuleScope Jax.Core -Parameters @{ Root = $script:sourceRoot; Cache = $cache; State = $state } {
+            param($Root, $Cache, $State)
+            Mock Get-JaxInstallInfo { throw 'probe exploded' }
+            (& { Write-JaxUpdateNotice -RuntimeRoot $Root -CachePath $Cache -StatePath $State -Force } 6>&1 | Out-String)
+        }
+
+        $output | Should -Match 'Jax 99\.0\.0 is available'
     }
 
     It 'announces again in a different shell session' {

@@ -6,7 +6,8 @@ param (
             $choices = @(
                 'help', 'init',
                 'env', 'list-envs', 'list-tasks',
-                'run', 'r', 'invoke', 'plan', 'autocomplete', 'create-flavour', 'settings', 'skill', 'info'
+                'run', 'r', 'invoke', 'plan', 'autocomplete', 'create-flavour', 'settings', 'skill', 'info',
+                'update'
             )
             foreach ($c in $choices) {
                 if ([string]::IsNullOrWhiteSpace($wordToComplete) -or $c -like "$wordToComplete*") {
@@ -463,6 +464,8 @@ begin {
         Write-Host "  skill      Install the bundled AI-agent skill into the target repository"
         Write-Host "  create-flavour  Create a flavour file under configs/jax-flavours"
         Write-Host "  settings   Manage persisted settings (.jax/state.yml)"
+        Write-Host "  update     Update the installed Jax to the latest PowerShell Gallery release"
+        Write-Host "             [--check] report only  [--yes] no prompt  [--force] reinstall"
         Write-Host ""
         Write-Host "Output flags:"
         Write-Host "  -q  / -Quiet     Minimal output (one-line banners, no framed boxes). Persist with 'jax settings set quiet on'."
@@ -595,6 +598,22 @@ begin {
 
     switch ($Command) {
         'help' { Show-JaxHelp }
+        'update' {
+            # Updating the copy the shims actually load - see Update-Jax. Parsed
+            # here rather than through the shared flag machinery because it takes
+            # no env/scenario context; it is about the install, not about a build.
+            $updateParams = @{ RuntimeRoot = $PSScriptRoot }
+            foreach ($updateArg in @($CommandArgs)) {
+                switch -regex ("$updateArg") {
+                    '^--?check$' { $updateParams.Check = $true }
+                    '^--?yes$'   { $updateParams.Yes = $true }
+                    '^-y$'       { $updateParams.Yes = $true }
+                    '^--?force$' { $updateParams.Force = $true }
+                    default { Write-Warning "Ignoring unknown 'jax update' argument '$updateArg'." }
+                }
+            }
+            Update-Jax @updateParams
+        }
         '-h' { Show-JaxHelp }
         '--help' { Show-JaxHelp }
         'init' {
@@ -989,6 +1008,43 @@ begin {
             return
         }
 
+        # A fully qualified -env already names its client, so Resolve-JaxSelectedEnvironment
+        # never reads -client. Two clients asked for at once is a contradiction Jax
+        # cannot resolve, and picking one silently is how `-client codex` came to look
+        # accepted while the run used another client entirely.
+        #
+        # Only what was typed this run, never the value persisted in state.yml: `client`
+        # is a persistent setting, so a saved one would break every fully qualified -env.
+        if ($options.Contains('client') -and -not [string]::IsNullOrWhiteSpace([string]$options['client'])) {
+            $typedClient = ([string]$options['client']).Trim()
+            $selectedEnvName = ([string]$resolved['env']).Trim()
+            if ($selectedEnvName.Contains('/')) {
+                $envClientSegment = $selectedEnvName.Split('/')[0]
+                if ($envClientSegment -ine $typedClient) {
+                    $envSentence = if ($options.Contains('env')) {
+                        "You also passed -env '$selectedEnvName', which already names its client ('$envClientSegment')."
+                    } else {
+                        "The environment saved in .jax/state.yml is '$selectedEnvName', which already names its client ('$envClientSegment')."
+                    }
+                    throw @"
+-client '$typedClient' cannot be honoured.
+
+$envSentence
+Jax selects on the fully qualified name and never reads -client in that case,
+so the two disagree with no way to reconcile them.
+
+Do one of:
+  - drop -client and let '$selectedEnvName' stand
+  - pass the environment you meant: -env $typedClient/<environment>
+  - list what exists: jax list-envs
+
+If you meant a task parameter called 'client': Jax binds that name for itself,
+so a task can never take it. Rename the parameter, or set it via 'args:'.
+"@
+                }
+            }
+        }
+
         $selection = Resolve-JaxEnvSelection -Environments $envs -Env $resolved['env'] -Client $resolved['client'] @commonParams
         $selectedEnv = $selection.Environment
         $flowOverride = $selection.FlowOverride
@@ -1276,6 +1332,44 @@ Hints:
 $hintText
 "@
         }
+
+        # A task parameter named like one of Jax's own flags is dropped from the
+        # property bag (see $reservedKeys above): Jax binds the flag, the task keeps
+        # its default. Say so instead of letting the run continue as if the override
+        # had arrived — passing the flag is a stated intent Jax cannot honour.
+        $shadowedParams = @()
+        try {
+            $shadowedParams = @(Get-JaxShadowedTaskParameters -Entities $plan -ReservedNames $reservedKeys -SuppliedOptions $options -Context $context -CommonParameters $commonParams @commonParams)
+        } catch {
+            Write-Verbose "Shadowed-parameter check skipped: $($_.Exception.Message)"
+        }
+        $shadowedSupplied = @($shadowedParams | Where-Object { $_.Supplied })
+        if ($shadowedSupplied.Count -gt 0) {
+            $shadowedLines = @($shadowedSupplied | ForEach-Object {
+                    "  -{0}  declared by: {1}" -f $_.Name, (@($_.Entities) -join ', ')
+                }) -join "`n"
+            $shadowedNames = @($shadowedSupplied | ForEach-Object { "-$($_.Name)" }) -join ', '
+            throw @"
+$shadowedNames did not reach the task.
+
+Jax owns these flag names itself, so it binds them before task parameters. A
+psake property or script parameter of the same name can never be set from the
+command line: the task would have run with its default value.
+
+$shadowedLines
+
+Do one of:
+  - rename the task parameter to a name Jax does not own
+  - set it in the flow file's 'args:' for this entity
+  - invoke psake/the script directly when the colliding name has to stay
+"@
+        }
+        if ($shadowedParams.Count -gt 0 -and -not $quietMode) {
+            foreach ($shadowed in $shadowedParams) {
+                Write-Warning ("jax: '{0}' is a name Jax binds for itself, so the '{0}' parameter declared by {1} cannot be set from the command line. Rename it, or set it via the flow file's 'args:'." -f $shadowed.Name, (@($shadowed.Entities) -join ', '))
+            }
+        }
+
         if ([bool]$resolved['docker'] -or [bool]$resolved['container']) {
             $runConfig = $null
             if ($context.ContainsKey('RunConfig')) {

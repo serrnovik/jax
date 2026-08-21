@@ -1,0 +1,4 @@
+module:
+  name: shadow_client_clean
+  version:
+    base: "1.0"

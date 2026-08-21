@@ -28,10 +28,28 @@ function Get-JaxIncludedFiles {
 
     foreach ($command in $commands) {
         $argument = $command.CommandElements[1]
-        if ($argument -isnot [System.Management.Automation.Language.StringConstantExpressionAst]) {
+        $path = $null
+        if ($argument -is [System.Management.Automation.Language.StringConstantExpressionAst]) {
+            $path = $argument.Value
+        } elseif ($argument -is [System.Management.Automation.Language.ExpandableStringExpressionAst] -and
+                  $argument.Value -match '^\$PSScriptRoot[\\/]') {
+            # `Include "$PSScriptRoot/tasks-x.ps1"` is the CORRECT way to write
+            # an include — psake's own Include resolves a bare relative path
+            # against the CURRENT DIRECTORY, so a literal breaks the moment a
+            # nested env (env/<app>) includes a shared psakefile from
+            # env/common. Skipping expandable strings meant discovery followed
+            # only literals, so eight of the nine includes in env/common were
+            # invisible here and their task parameters never reached the CLI.
+            # Someone then wrote one include as a literal to make discovery see
+            # it, which broke every nested env at runtime instead.
+            #
+            # $PSScriptRoot inside a script IS that script's directory, which is
+            # exactly $parent, so this is a substitution rather than an eval.
+            $path = $argument.Value -replace '^\$PSScriptRoot', $parent
+        }
+        if ($null -eq $path) {
             continue
         }
-        $path = $argument.Value
         if ([string]::IsNullOrWhiteSpace($path)) {
             continue
         }

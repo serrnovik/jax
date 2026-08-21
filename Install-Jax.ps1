@@ -180,7 +180,24 @@ try {
         }
     }
 
+    # A published package carries Origin = 'Gallery' from Build-JaxPackage, and
+    # installing it keeps that. A source checkout has no record, so the install is
+    # Manual. Get-JaxInstallInfo reads this to decide whether `jax update` is
+    # replacing a hand-built copy (and should say so) or refreshing a released one.
+    $sourceOrigin = 'Manual'
+    $sourceRecordPath = Join-Path $sourceRoot 'INSTALLATION.json'
+    if (Test-Path -LiteralPath $sourceRecordPath -PathType Leaf) {
+        try {
+            $sourceRecord = Get-Content -LiteralPath $sourceRecordPath -Raw | ConvertFrom-Json
+            $recordedOrigin = [string]$sourceRecord.Origin
+            if ($recordedOrigin -in @('Gallery', 'Manual')) { $sourceOrigin = $recordedOrigin }
+        } catch {
+            # An unreadable record just means we fall back to Manual.
+        }
+    }
+
     [ordered]@{
+        Origin        = $sourceOrigin
         Version       = [string]$manifest.Version
         SourceCommit  = $sourceCommit
         InstalledAtUtc = [DateTime]::UtcNow.ToString('O')

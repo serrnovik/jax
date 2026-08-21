@@ -130,7 +130,12 @@ try {
         } catch {
         }
     }
+    # Origin travels with the package. Install-Jax.ps1 copies it forward, so a
+    # copy installed from a published package identifies itself as Gallery while
+    # one installed from a checkout says Manual — which is what decides the
+    # update command Jax offers.
     [ordered]@{
+        Origin         = 'Gallery'
         Version        = $version
         SourceCommit   = $sourceCommit
         InstalledAtUtc = [DateTime]::UtcNow.ToString('O')

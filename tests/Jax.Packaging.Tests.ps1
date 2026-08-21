@@ -64,7 +64,10 @@ Describe 'Standalone Jax packaging' {
         $packageMetadata.SourceCommit | Should -Not -BeNullOrEmpty
         Test-Path -LiteralPath (Join-Path $packageRoot 'tests') | Should -BeFalse
         Test-Path -LiteralPath (Join-Path $packageRoot 'docs') | Should -BeFalse
-        Test-Path -LiteralPath (Join-Path $packageRoot 'Install-Jax.ps1') | Should -BeFalse
+        # Shipped on purpose: `jax update` runs the downloaded package's own
+        # installer. Dev-only trees (tests, docs) stay out.
+        Test-Path -LiteralPath (Join-Path $packageRoot 'Install-Jax.ps1') | Should -BeTrue
+        $packageMetadata.Origin | Should -Be 'Gallery'
         { Test-ModuleManifest -Path (Join-Path $packageRoot 'Jax.psd1') -ErrorAction Stop } |
             Should -Not -Throw
     }

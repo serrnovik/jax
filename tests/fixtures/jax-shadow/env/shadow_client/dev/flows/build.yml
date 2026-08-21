@@ -1,0 +1,6 @@
+suite:
+  scenarios:
+    default:
+      show_shadowed:
+        runner: psake
+        task: ShowShadowedParam

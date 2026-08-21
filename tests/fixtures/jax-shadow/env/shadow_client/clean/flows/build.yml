@@ -1,0 +1,6 @@
+suite:
+  scenarios:
+    default:
+      no_shadow:
+        runner: psake
+        task: NoShadowHere
