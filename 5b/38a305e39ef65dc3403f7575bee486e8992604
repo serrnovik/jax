@@ -1,0 +1,74 @@
+Build-JaxPackage.ps1
+  h_813cbbe43c4b46 133-136,138
+Get-JaxInstalls.ps1
+  h_813cbbe43c4b46 1-22
+Install-Jax.ps1
+  h_813cbbe43c4b46 183-198,200
+Jax.psd1
+  h_813cbbe43c4b46 3,30
+README.md
+  h_813cbbe43c4b46 121-145,162,165-167
+VERSION
+  h_813cbbe43c4b46 1
+core/private/Get-JaxEntityDeclaredParameterNames.ps1
+  h_813cbbe43c4b46 1-61
+core/private/Get-JaxGalleryStatus.ps1
+  h_813cbbe43c4b46 1-53
+core/private/Get-JaxIncludedFiles.ps1
+  h_813cbbe43c4b46 31-50
+core/private/Get-JaxInstallInfo.ps1
+  h_813cbbe43c4b46 1-125
+core/private/Install-JaxGalleryPackage.ps1
+  h_813cbbe43c4b46 1-212
+core/public/Get-JaxShadowedTaskParameters.ps1
+  h_813cbbe43c4b46 1-79
+core/public/Resolve-JaxCliCommand.ps1
+  h_813cbbe43c4b46 99-103
+core/public/Update-Jax.ps1
+  h_813cbbe43c4b46 1-147
+core/public/Write-JaxUpdateNotice.ps1
+  h_813cbbe43c4b46 86-93,96-101
+distribution-manifest.psd1
+  h_813cbbe43c4b46 2,15-22
+docs/README.md
+  h_813cbbe43c4b46 785-790,796-804,843-853
+jax.ps1
+  h_813cbbe43c4b46 9-10,467-468,601-616,1011-1047,1335-1372
+tests/Jax.Cli.ShadowedParams.Tests.ps1
+  h_813cbbe43c4b46 1-140
+tests/Jax.Cli.UpdateNotice.Tests.ps1
+  h_813cbbe43c4b46 49-51,56-87
+tests/Jax.Core.ShadowedParameters.Tests.ps1
+  h_813cbbe43c4b46 1-111
+tests/Jax.Install.Tests.ps1
+  h_813cbbe43c4b46 1-287
+tests/Jax.Packaging.Tests.ps1
+  h_813cbbe43c4b46 67-70
+tests/fixtures/jax-shadow/env/shadow_client/clean/flows/build.yml
+  h_813cbbe43c4b46 1-6
+tests/fixtures/jax-shadow/env/shadow_client/clean/jaxfile.yml
+  h_813cbbe43c4b46 1-4
+tests/fixtures/jax-shadow/env/shadow_client/clean/psakefile.ps1
+  h_813cbbe43c4b46 1-8
+tests/fixtures/jax-shadow/env/shadow_client/dev/flows/build.yml
+  h_813cbbe43c4b46 1-6
+tests/fixtures/jax-shadow/env/shadow_client/dev/jaxfile.yml
+  h_813cbbe43c4b46 1-4
+tests/fixtures/jax-shadow/env/shadow_client/dev/psakefile.ps1
+  h_813cbbe43c4b46 1-12
+tests/fixtures/jax-shadow/env/shadow_client/dev/scripts/shadow-script.ps1
+  h_813cbbe43c4b46 1-7
+tests/fixtures/jax-shadow/jax.config.yml
+  h_813cbbe43c4b46 1-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "5b38a305e39ef65dc3403f7575bee486e8992604",
+  "prompts": {},
+  "humans": {
+    "h_813cbbe43c4b46": {
+      "author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
