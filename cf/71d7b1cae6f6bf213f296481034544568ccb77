@@ -1,0 +1,24 @@
+Jax.psd1
+  h_813cbbe43c4b46 3,30
+Jax.psm1
+  h_813cbbe43c4b46 6-83,94,181,194-196,226
+VERSION
+  h_813cbbe43c4b46 1
+distribution-manifest.psd1
+  h_813cbbe43c4b46 2
+shell/Jax.ShellLauncher.ps1
+  h_813cbbe43c4b46 9-16
+tests/Jax.Packaging.Tests.ps1
+  h_813cbbe43c4b46 235-278,345-372,538-555
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cf71d7b1cae6f6bf213f296481034544568ccb77",
+  "prompts": {},
+  "humans": {
+    "h_813cbbe43c4b46": {
+      "author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
