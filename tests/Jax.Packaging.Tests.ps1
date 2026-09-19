@@ -232,6 +232,50 @@ Describe 'Standalone Jax packaging' {
             Should -Match 'export JAX_MODULE_PATH='
     }
 
+    It 'rewrites a script-module pin to the manifest' {
+        # Get-Module Jax.Path is Jax.psm1 even after a manifest import. Session
+        # scripts used to persist that path, which makes Get-Module.Version 0.0.
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $powerShellProfile = Join-Path $script:testRoot 'profiles/psm1-pin.ps1'
+        $zshProfile = Join-Path $script:testRoot 'profiles/psm1-pin.zshrc'
+        $psm1 = Join-Path $script:installRoot 'Jax.psm1'
+        $psd1 = Join-Path $script:installRoot 'Jax.psd1'
+        $integrationParameters = @{
+            Shell = 'powershell'
+            ModulePath = $psm1
+            PowerShellProfilePath = $powerShellProfile
+        }
+        if (-not $IsWindows) {
+            $integrationParameters.Shell = 'powershell,zsh'
+            $integrationParameters.InstallRoot = Join-Path $script:testRoot 'psm1-pin-shell'
+            $integrationParameters.ZshProfilePath = $zshProfile
+        }
+
+        Install-JaxShellIntegration @integrationParameters
+
+        $powerShellContent = Get-Content -LiteralPath $powerShellProfile -Raw
+        $powerShellContent | Should -Match ([regex]::Escape($psd1))
+        $powerShellContent | Should -Not -Match ([regex]::Escape($psm1))
+        if (-not $IsWindows) {
+            $zshContent = Get-Content -LiteralPath $zshProfile -Raw
+            $zshContent | Should -Match ([regex]::Escape($psd1))
+            $zshContent | Should -Not -Match ([regex]::Escape($psm1))
+        }
+    }
+
+    It 'resolves a script-module path or directory to the sibling manifest' {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $psd1 = [IO.Path]::GetFullPath((Join-Path $script:installRoot 'Jax.psd1'))
+        $psm1 = Join-Path $script:installRoot 'Jax.psm1'
+
+        InModuleScope Jax -Parameters @{ Psm1 = $psm1; Psd1 = $psd1; Root = $script:installRoot } {
+            param($Psm1, $Psd1, $Root)
+            Resolve-JaxModuleManifestPath -Path $Psm1 | Should -Be $Psd1
+            Resolve-JaxModuleManifestPath -Path $Root | Should -Be $Psd1
+            Resolve-JaxModuleManifestPath -Path $Psd1 | Should -Be $Psd1
+        }
+    }
+
     It 'routes zsh and bash arguments through the installed PowerShell module' `
         -Skip:($IsWindows -or $null -eq (Get-Command zsh -ErrorAction SilentlyContinue) -or $null -eq (Get-Command bash -ErrorAction SilentlyContinue)) {
         Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
@@ -283,6 +327,34 @@ Describe 'Standalone Jax packaging' {
             $env:PATH = (Join-Path $shellRoot 'bin') + [IO.Path]::PathSeparator + $previousPath
             $env:JAX_MODULE_PATH = Join-Path $script:installRoot 'Jax.psd1'
             # No profile is sourced here: the command must resolve from PATH.
+            $output = & sh -c 'jx "$@"' jax-test -C $script:consumerRoot info -q 2>&1 | Out-String
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $env:PATH = $previousPath
+            if ($null -eq $previousModulePath) {
+                Remove-Item Env:JAX_MODULE_PATH -ErrorAction SilentlyContinue
+            } else {
+                $env:JAX_MODULE_PATH = $previousModulePath
+            }
+        }
+
+        $exitCode | Should -Be 0 -Because $output
+        $output | Should -Match 'Target repository:'
+    }
+
+    It 'runs jx when JAX_MODULE_PATH still points at the script module' `
+        -Skip:($IsWindows -or $null -eq (Get-Command sh -ErrorAction SilentlyContinue)) {
+        Import-Module (Join-Path $script:installRoot 'Jax.psd1') -Force
+        $shellRoot = Join-Path $script:testRoot 'shell-shims-psm1'
+        Install-JaxShellIntegration -Shell zsh, bash -InstallRoot $shellRoot `
+            -ZshProfilePath (Join-Path $script:testRoot 'shims-psm1.zshrc') `
+            -BashProfilePath (Join-Path $script:testRoot 'shims-psm1.bashrc')
+
+        $previousPath = $env:PATH
+        $previousModulePath = $env:JAX_MODULE_PATH
+        try {
+            $env:PATH = (Join-Path $shellRoot 'bin') + [IO.Path]::PathSeparator + $previousPath
+            $env:JAX_MODULE_PATH = Join-Path $script:installRoot 'Jax.psm1'
             $output = & sh -c 'jx "$@"' jax-test -C $script:consumerRoot info -q 2>&1 | Out-String
             $exitCode = $LASTEXITCODE
         } finally {
@@ -461,6 +533,24 @@ zstyle -s ':completion:*' menu menu_style || exit 1
         $second.Status | Should -Be 'Unavailable'
         $second.Source | Should -Be 'cache'
         Assert-MockCalled -CommandName Invoke-WebRequest -ModuleName Jax -Times 1
+    }
+
+    It 'reports the manifest version after a script-module import' {
+        Get-Module Jax | Remove-Module -Force
+        Import-Module (Join-Path $script:installRoot 'Jax.psm1') -Force -DisableNameChecking
+        (Get-Module Jax).Version | Should -Be ([version]'0.0')
+
+        $expected = [version](Import-PowerShellDataFile -LiteralPath (Join-Path $script:installRoot 'Jax.psd1')).ModuleVersion
+        $cachePath = Join-Path $script:testRoot 'update-check-manifest-version.json'
+        [ordered]@{
+            CheckedAtUtc  = [DateTime]::UtcNow.ToString('O')
+            LatestVersion = $expected.ToString()
+            Status        = 'Available'
+        } | ConvertTo-Json | Set-Content -LiteralPath $cachePath -Encoding utf8
+
+        $status = Get-JaxUpdateStatus -CachePath $cachePath
+        $status.CurrentVersion | Should -Be $expected
+        $status.UpdateAvailable | Should -BeFalse
     }
 
     It 'refuses to replace an unrelated existing directory' {

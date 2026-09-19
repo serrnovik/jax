@@ -6,6 +6,14 @@ function Resolve-JaxShellModuleManifest {
         $candidate = $env:JAX_MODULE_PATH
         if (Test-Path -LiteralPath $candidate -PathType Container) {
             $candidate = Join-Path $candidate 'Jax.psd1'
+        } elseif (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            # Profiles used to persist Get-Module.Path, which is Jax.psm1.
+            # The launcher only needs the directory, but prefer the manifest
+            # so a later Import-Module of this path keeps the real version.
+            $sibling = Join-Path ([IO.Path]::GetDirectoryName($candidate)) 'Jax.psd1'
+            if (Test-Path -LiteralPath $sibling -PathType Leaf) {
+                $candidate = $sibling
+            }
         }
         if (Test-Path -LiteralPath $candidate -PathType Leaf) {
             return (Resolve-Path -LiteralPath $candidate).Path

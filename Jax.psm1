@@ -3,6 +3,84 @@ Set-StrictMode -Version Latest
 $script:JaxLauncher = Join-Path $PSScriptRoot 'jax.ps1'
 $script:JaxShortcutLauncher = Join-Path $PSScriptRoot 'jxs.ps1'
 
+function Resolve-JaxModuleManifestPath {
+    <#
+    .SYNOPSIS
+        Return the Jax.psd1 that belongs to a module path.
+    .DESCRIPTION
+        Get-Module Jax.Path is the RootModule script (Jax.psm1) even after a
+        manifest import. Session scripts used to persist that path, and
+        Import-Module of a .psm1 reports Version 0.0. Always pin and load the
+        sibling manifest when it exists.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    $resolved = try { [IO.Path]::GetFullPath($Path) } catch { $Path }
+    if (Test-Path -LiteralPath $resolved -PathType Container) {
+        $manifest = Join-Path $resolved 'Jax.psd1'
+        if (Test-Path -LiteralPath $manifest -PathType Leaf) {
+            return [IO.Path]::GetFullPath($manifest)
+        }
+        throw "Jax module manifest is missing: $manifest"
+    }
+
+    $directory = [IO.Path]::GetDirectoryName($resolved)
+    if (-not [string]::IsNullOrWhiteSpace($directory)) {
+        $sibling = Join-Path $directory 'Jax.psd1'
+        if (Test-Path -LiteralPath $sibling -PathType Leaf) {
+            return [IO.Path]::GetFullPath($sibling)
+        }
+    }
+
+    if (Test-Path -LiteralPath $resolved -PathType Leaf) {
+        return $resolved
+    }
+
+    throw "Jax module manifest is missing: $resolved"
+}
+
+function Get-JaxRuntimeVersion {
+    <#
+    .SYNOPSIS
+        Read this runtime's version from Jax.psd1, not from Get-Module.
+    .DESCRIPTION
+        Import-Module Jax.psm1 creates a script module whose Version is 0.0.
+        The published number lives on the manifest (and the VERSION file).
+    #>
+    [CmdletBinding()]
+    param()
+
+    $version = $null
+    $manifestPath = Join-Path $PSScriptRoot 'Jax.psd1'
+    if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
+        try {
+            $parsed = $null
+            $text = [string](Import-PowerShellDataFile -LiteralPath $manifestPath).ModuleVersion
+            if ([version]::TryParse($text, [ref] $parsed)) {
+                $version = $parsed
+            }
+        } catch {
+            # Fall through to VERSION, then to an unknown current version.
+        }
+    }
+
+    if ($null -eq $version) {
+        $versionPath = Join-Path $PSScriptRoot 'VERSION'
+        if (Test-Path -LiteralPath $versionPath -PathType Leaf) {
+            $parsed = $null
+            if ([version]::TryParse((Get-Content -LiteralPath $versionPath -Raw).Trim(), [ref] $parsed)) {
+                $version = $parsed
+            }
+        }
+    }
+
+    return $version
+}
+
 function Get-JaxUpdateStatus {
     [CmdletBinding()]
     param(
@@ -13,14 +91,7 @@ function Get-JaxUpdateStatus {
         [switch] $Force
     )
 
-    $loadedModule = Get-Module -Name Jax |
-        Where-Object { $_.ModuleBase -eq $PSScriptRoot } |
-        Select-Object -First 1
-    $currentVersion = if ($null -ne $loadedModule) {
-        [version]$loadedModule.Version
-    } else {
-        [version](Import-PowerShellDataFile -LiteralPath (Join-Path $PSScriptRoot 'Jax.psd1')).ModuleVersion
-    }
+    $currentVersion = Get-JaxRuntimeVersion
 
     $cachePath = [IO.Path]::GetFullPath($CachePath)
     $cache = $null
@@ -107,7 +178,7 @@ function Get-JaxUpdateStatus {
     [pscustomobject]@{
         CurrentVersion = $currentVersion
         LatestVersion = $latestVersion
-        UpdateAvailable = $null -ne $latestVersion -and $latestVersion -gt $currentVersion
+        UpdateAvailable = $null -ne $latestVersion -and $null -ne $currentVersion -and $latestVersion -gt $currentVersion
         Status = $status
         CheckedAtUtc = if ($checkedAt -eq [DateTime]::MinValue) { $null } else { $checkedAt.ToUniversalTime() }
         Source = $source
@@ -120,6 +191,9 @@ function Install-JaxShellIntegration {
         [string[]] $Shell,
         # Source installs pass their exact manifest so every shell uses the
         # checkout build instead of a possibly newer Gallery installation.
+        # A directory or Jax.psm1 path is rewritten to the sibling Jax.psd1:
+        # Get-Module.Path is the RootModule script even after a manifest import,
+        # and Import-Module of that script reports Version 0.0.
         [string] $ModulePath,
         [string] $InstallRoot = (Join-Path $HOME '.jax/shell'),
         # CurrentUserCurrentHost loads after the all-hosts profile, so later
@@ -149,13 +223,7 @@ function Install-JaxShellIntegration {
 
     $resolvedModulePath = $null
     if (-not [string]::IsNullOrWhiteSpace($ModulePath)) {
-        $resolvedModulePath = [IO.Path]::GetFullPath($ModulePath)
-        if (Test-Path -LiteralPath $resolvedModulePath -PathType Container) {
-            $resolvedModulePath = Join-Path $resolvedModulePath 'Jax.psd1'
-        }
-        if (-not (Test-Path -LiteralPath $resolvedModulePath -PathType Leaf)) {
-            throw "Jax module manifest is missing: $resolvedModulePath"
-        }
+        $resolvedModulePath = Resolve-JaxModuleManifestPath -Path $ModulePath
     }
 
     if ($null -eq $Shell -or $Shell.Count -eq 0) {
