@@ -1,0 +1,28 @@
+Jax.psd1
+  h_813cbbe43c4b46 3,30
+VERSION
+  h_813cbbe43c4b46 1
+core/private/Convert-JaxCliSwitchValue.ps1
+  h_813cbbe43c4b46 15-16
+core/private/Resolve-JaxPsakeProperties.ps1
+  h_813cbbe43c4b46 44-54,57-82
+distribution-manifest.psd1
+  h_813cbbe43c4b46 2
+tests/Jax.Cli.BoolParams.Tests.ps1
+  h_813cbbe43c4b46 43-47
+tests/Jax.Core.PsakeBoolProperties.Tests.ps1
+  h_813cbbe43c4b46 1-57
+tests/fixtures/jax-client/env/jax_client/dev/psakefile.ps1
+  h_813cbbe43c4b46 40-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f64583bf9e1e7b2c2f98cfbbf421f91f8466e93",
+  "prompts": {},
+  "humans": {
+    "h_813cbbe43c4b46": {
+      "author": "sno <serrnovik@gmail.com>"
+    }
+  }
+}
