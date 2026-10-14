@@ -1,6 +1,6 @@
 @{
     RootModule = 'Jax.psm1'
-    ModuleVersion = '0.1.18'
+    ModuleVersion = '0.1.19'
     GUID = '1ea40670-b2f8-4daa-bc38-724f570ee4d9'
     Author = 'Sergey Novikov <sergey@novik.fr>'
     Copyright = 'Copyright 2026 Sergey Novikov'
@@ -27,7 +27,7 @@
             Tags = @('automation', 'cli', 'powershell', 'psake', 'tasks')
             ProjectUri = 'https://github.com/serrnovik/jax'
             LicenseUri = 'https://github.com/serrnovik/jax/blob/main/LICENSE'
-            ReleaseNotes = '0.1.18: Get-JaxUpdateStatus reads Jax.psd1 instead of Get-Module.Version, so an Import-Module of Jax.psm1 no longer reports 0.0 and falsely offers jax update. Install-JaxShellIntegration and the shell launcher rewrite a .psm1 pin to the sibling manifest. `jax update` replaces the managed install at ~/.jax/module with the latest PowerShell Gallery release. That path is the only copy the jax, jx and jxs shims load, so an `Update-PSResource Jax` landing anywhere on PSModulePath updates something none of them run; if such a copy exists the command reports it and offers to remove it, because a bare `Import-Module Jax` resolves to that one instead. The downloaded package installs itself by running its own Install-Jax.ps1, which now ships in the package along with the distribution manifest it copies from, so staging, backup, manifest validation and shell integration all come from the release being installed. Build-JaxPackage stamps Origin = Gallery into INSTALLATION.json and the installer carries it forward, so Jax can tell a published copy from one built out of a checkout, and the once-per-session update notice offers the command that updates the copy you are actually running instead of a hard-coded Update-PSResource line. A local build newer than the published release, or the same version, is reported as current rather than as a problem.'
+            ReleaseNotes = '0.1.19: A [bool] task property overridden as text now reaches psake as a real Boolean. When DynamicParam could not bind a flag, `-flag:$false`, `-flag:False` or `-flag:0` arrived as the string ''False'': binding it to any [bool] parameter threw "Cannot convert value System.String to type System.Boolean", and `if ($flag)` treated it as true. Resolve-JaxPsakeProperties now converts every property the entity declares as [bool] (from the CLI, a flow `args:` value or run-config) with Convert-JaxCliSwitchValue, which also reads a literal `$false`/`$true` from a POSIX shell.'
         }
     }
 }

@@ -41,5 +41,42 @@ function Resolve-JaxPsakeProperties {
         $properties = Merge-JaxHashtable -Base $properties -Overlay $Context['CliArgs'] @CommonParameters
     }
 
+    # A [bool] property overridden as text (`-flag:$false` that DynamicParam could not
+    # bind, a flow `args:` value, a run-config string) reaches psake as the string
+    # 'False': it then fails to bind to any [bool] parameter, and is truthy in `if`.
+    # Hand the declared type back.
+    foreach ($name in @(Get-JaxDeclaredBoolParameterNames -Entity $Entity)) {
+        if (-not $properties.ContainsKey($name)) { continue }
+        $value = $properties[$name]
+        if ($null -eq $value -or $value -is [bool]) { continue }
+        $properties[$name] = Convert-JaxCliSwitchValue -Value $value
+    }
+
     return $properties
+}
+
+function Get-JaxDeclaredBoolParameterNames {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [System.Collections.IDictionary] $Entity
+    )
+
+    if (-not $Entity.Contains('Definition') -or $Entity['Definition'] -isnot [System.Collections.IDictionary]) {
+        return @()
+    }
+    $definition = $Entity['Definition']
+    if (-not $definition.Contains('Parameters')) {
+        return @()
+    }
+    $boolTypes = @('bool', 'boolean', 'system.boolean', 'switch', 'switchparameter', 'system.management.automation.switchparameter')
+    $names = @()
+    foreach ($p in @($definition['Parameters'])) {
+        if ($p -isnot [System.Collections.IDictionary]) { continue }
+        $type = ([string]$p['Type']).Trim().TrimStart('[').TrimEnd(']').ToLowerInvariant()
+        if ($boolTypes -contains $type -and -not [string]::IsNullOrWhiteSpace([string]$p['Name'])) {
+            $names += [string]$p['Name']
+        }
+    }
+    return $names
 }

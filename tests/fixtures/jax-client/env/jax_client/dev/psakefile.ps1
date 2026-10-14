@@ -37,4 +37,6 @@ Task ShowBoolFlag {
         $value = $properties['boolFlag']
     }
     Write-Host ("Props.boolFlag: {0}" -f [bool]$value)
+    # The runtime type matters too: the text 'False' casts to $true above.
+    Write-Host ("Props.boolFlagType: {0}" -f $(if ($null -eq $boolFlag) { 'null' } else { $boolFlag.GetType().Name }))
 }

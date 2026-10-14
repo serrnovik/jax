@@ -12,7 +12,8 @@ function Convert-JaxCliSwitchValue {
         return $Value
     }
 
-    $text = $Value.ToString().Trim().ToLowerInvariant()
+    # `-flag:$false` from a POSIX shell arrives as the literal text '$false'.
+    $text = $Value.ToString().Trim().TrimStart('$').ToLowerInvariant()
     switch ($text) {
         '1' { return $true }
         'true' { return $true }

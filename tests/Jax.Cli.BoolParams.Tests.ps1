@@ -40,6 +40,11 @@ Describe "Boolean task parameters bind as flags" {
         Invoke-BoolFlagRun -ExtraArgs '-boolFlag:$false' | Should -Match 'Props\.boolFlag: False'
     }
 
+    It "hands psake a real Boolean, not the text 'False'" {
+        Invoke-BoolFlagRun -ExtraArgs '-boolFlag:$false' | Should -Match 'Props\.boolFlagType: Boolean'
+        Invoke-BoolFlagRun -ExtraArgs '-boolFlag' | Should -Match 'Props\.boolFlagType: Boolean'
+    }
+
     It "still honors the legacy space-separated value" {
         Invoke-BoolFlagRun -ExtraArgs '-boolFlag $true' | Should -Match 'Props\.boolFlag: True'
         Invoke-BoolFlagRun -ExtraArgs '-boolFlag $false' | Should -Match 'Props\.boolFlag: False'
