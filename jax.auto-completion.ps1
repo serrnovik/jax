@@ -246,6 +246,7 @@ function Get-JaxCompletionCommands {
         'init-compat',
         'env',
         'list-envs',
+        'search',
         'run',
         'r',
         'invoke',
@@ -942,6 +943,23 @@ $jaxCompleter = {
                     }
                 }
             }
+        }
+
+        # `jax search <TAB>`: task names from the saved index only. Building
+        # the index takes seconds, far too slow for a key press.
+        if ($subCmd -eq 'search' -and -not ([string]$wordToComplete).StartsWith('-') -and -not ([string]$prevToken -like '-*')) {
+            $indexPath = Join-Path (Get-JaxRepoRoot) '.jax/cache/task-index.json'
+            if (Test-Path -LiteralPath $indexPath -PathType Leaf) {
+                $index = Get-Content -LiteralPath $indexPath -Raw | ConvertFrom-Json -AsHashtable
+                $needle = [string]$wordToComplete
+                $names = @(foreach ($entry in @($index['environments'])) { @($entry['tasks']) }) | Sort-Object -Unique
+                foreach ($name in $names) {
+                    if ([string]::IsNullOrEmpty($needle) -or $name -like "*$needle*") {
+                        New-JaxCompletionResult -Value $name -Display $name -ToolTip "search $name"
+                    }
+                }
+            }
+            return
         }
 
         if ($subCmd -eq 'vault') {

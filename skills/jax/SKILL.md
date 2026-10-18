@@ -81,6 +81,7 @@ git -C <repo-path> status
 jx -C <repo-path> init -client <client> -env <environment>
 jx -C <repo-path> list-envs -q
 jx -C <repo-path> list-tasks -e <client>/<environment> -q
+jx -C <repo-path> search <pattern> -q          # which environment has a task; * and ? wildcards
 jx -C <repo-path> -e <client>/<environment> -q run -o Build -nss
 ```
 
@@ -141,6 +142,7 @@ Discover before running when repository conventions are unknown:
 ```sh
 jx -C <repo-path> list-envs -q
 jx -C <repo-path> list-tasks -e <client>/<environment> -q
+jx -C <repo-path> search <pattern> -q          # which environment has a task; * and ? wildcards
 jx -C <repo-path> -e <client>/<environment> -q run -o <Task> -nss
 ```
 

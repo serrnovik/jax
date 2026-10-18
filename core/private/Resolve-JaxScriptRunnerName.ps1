@@ -6,7 +6,7 @@ function Resolve-JaxScriptRunnerName {
     )
 
     $commonParams = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     $extension = [IO.Path]::GetExtension($ScriptPath).ToLowerInvariant()
     switch ($extension) {

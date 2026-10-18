@@ -7,7 +7,7 @@ function Resolve-JaxEntityAliases {
     )
 
     $commonParams = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     $aliases = @()
     if ($AliasesMap -is [System.Collections.IDictionary] -and -not [string]::IsNullOrWhiteSpace($Key)) {

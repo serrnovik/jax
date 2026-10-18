@@ -5,7 +5,7 @@ param (
             param($commandName, $parameterName, $wordToComplete, $commandAst, $fakeBoundParameters)
             $choices = @(
                 'help', 'init',
-                'env', 'list-envs', 'list-tasks',
+                'env', 'list-envs', 'list-tasks', 'search',
                 'run', 'r', 'invoke', 'plan', 'autocomplete', 'create-flavour', 'settings', 'skill', 'info',
                 'update'
             )
@@ -457,6 +457,7 @@ begin {
         # Write-Host "  init-legacy  Alias for init-compat"
         Write-Host "  env init  Initialize environment scaffold"
         Write-Host "  list-envs  List environments discovered under env/"
+        Write-Host "  search     Find tasks by name across environments (substring; * and ? wildcards)"
         Write-Host "  run (r, invoke)  Run flows and scenarios (explicit)"
         Write-Host "  plan       Print the run plan without executing"
         Write-Host "  autocomplete  Register jax tab completion for the current session"
@@ -680,71 +681,42 @@ begin {
                 return
             }
 
-            $skipEnvRoot = $false
-            if ($selectedEnv.PSObject.Properties.Match('SkipEnvRoot').Count -gt 0 -and $selectedEnv.SkipEnvRoot) {
-                $skipEnvRoot = $true
-            }
-            if ($selectedEnv.PSObject.Properties.Match('IsDummy').Count -gt 0 -and $selectedEnv.IsDummy) {
-                $skipEnvRoot = $true
-            }
-            $isComputedEnv = $false
-            if ($selectedEnv.PSObject.Properties.Match('IsComputed').Count -gt 0 -and $selectedEnv.IsComputed) {
-                $isComputedEnv = $true
-            }
-
-            $flowOverride = $selection.FlowOverride
-            if ([string]::IsNullOrWhiteSpace($flowOverride)) {
-                $flowConfigEntry = Resolve-JaxSelectedFlowConfig -Environment $selectedEnv @commonParams
-            } else {
-                $flowConfigEntry = Resolve-JaxSelectedFlowConfig -Environment $selectedEnv -PreferredConfig $flowOverride @commonParams
-            }
-
-            $allowMissingFlowConfig = $skipEnvRoot -or $isComputedEnv
-            if ($null -eq $flowConfigEntry -and -not $allowMissingFlowConfig) {
-                Write-Host "No flow configs found for environment '$($selectedEnv.Name)'."
+            $taskKeys = Get-JaxEnvironmentTaskKeys -RepoRoot $repoRoot -Config $config -Environment $selectedEnv -FlowOverride $selection.FlowOverride @commonParams
+            if ($taskKeys.Keys.Count -eq 0) {
+                Write-Host $taskKeys.Message
                 return
             }
-
-            $flowConfig = $null
-            if ($null -ne $flowConfigEntry) {
-                $flowConfig = Get-JaxFlowConfig -Paths $flowConfigEntry.ConfigPaths -ExpandVariables:$false @commonParams
-            }
-
-            $envDir = $null
-            if ($null -ne $flowConfigEntry -and $flowConfigEntry.PSObject.Properties.Match('EnvDirPath').Count -gt 0) {
-                $envDir = $flowConfigEntry.EnvDirPath
-            } elseif ($selectedEnv.PSObject.Properties.Match('EnvDir').Count -gt 0) {
-                $envDir = $selectedEnv.EnvDir
-            }
-            $context = @{
-                RepoRoot             = $repoRoot
-                EnvDir               = $envDir
-                Config               = $config
-                SuppressRunConfigLog = $true
-                SkipEnvRoot          = $skipEnvRoot
-            }
-
-            $discoveredEntities = Get-JaxDiscoveredRunEntities -RepoRoot $repoRoot -EnvDir $envDir -Config $config -SkipEnvRoot:$skipEnvRoot @commonParams
-            $context['DiscoveredEntities'] = $discoveredEntities
-            $context['DiscoveredEntityIndex'] = New-JaxRunEntityIndex -Entities $discoveredEntities
-
-            $entities = @()
-            # Include default scenario tasks
-            if ($null -ne $flowConfig) {
-                $entities += Get-JaxScenarioRunEntities -FlowConfig $flowConfig -Scenario 'default' -Context $context -ProvenancePath $flowConfigEntry.ConfigPath -ErrorAction SilentlyContinue @commonParams
-            }
-
-            # Add discovered
-            if ($discoveredEntities.Count -gt 0) {
-                $entities += $discoveredEntities
-            }
-
-            $keys = Get-JaxRunEntityKeys -Entities $entities -IncludeAliases
-            if ($keys.Count -eq 0) {
-                Write-Host "No tasks found."
+            $taskKeys.Keys | Sort-Object | Format-Wide -AutoSize
+        }
+        'search' {
+            $repoRoot = $jaxRepoRoot
+            $pattern = @($CommandArgs | Where-Object { -not ([string]$_).StartsWith('-') }) | Select-Object -First 1
+            $refresh = @($CommandArgs | Where-Object { ([string]$_) -in @('-refresh', '--refresh') }).Count -gt 0
+            if ([string]::IsNullOrWhiteSpace($pattern)) {
+                Write-Host "Usage: jax search <pattern> [-e <env-pattern>] [--refresh]"
+                Write-Host "  Case-insensitive substring; * and ? are wildcards (e.g. 'ensure*install')."
+                Write-Host "  Results are indexed in .jax/cache until a .ps1/.yml file changes; --refresh rebuilds."
                 return
             }
-            $keys | Sort-Object | Format-Wide -AutoSize
+            $config = Get-JaxConfig -RepoRoot $repoRoot @commonParams
+            Import-JaxPlugins -Config $config -RepoRoot $repoRoot @commonParams | Out-Null
+            $envPattern = if ($PSBoundParameters.ContainsKey('env')) { $PSBoundParameters['env'] } else { $null }
+            $found = @(Find-JaxTasks -RepoRoot $repoRoot -Config $config -Pattern $pattern -EnvPattern $envPattern -Refresh:$refresh @commonParams)
+            if ($found.Count -eq 0) {
+                Write-Host "No tasks match '$pattern'."
+                return
+            }
+            # Tasks from shared psake files exist in most environments; show a few.
+            $maxEnvs = 3
+            foreach ($group in ($found | Group-Object -Property Task)) {
+                Write-Host $group.Name
+                foreach ($match in @($group.Group | Select-Object -First $maxEnvs)) {
+                    Write-Host "  jx -e $($match.Env) run -o $($match.Task)"
+                }
+                if ($group.Count -gt $maxEnvs) {
+                    Write-Host "  ... and $($group.Count - $maxEnvs) more environments (narrow with -e <env-pattern>)"
+                }
+            }
         }
         'list-envs' {
             $repoRoot = $jaxRepoRoot

@@ -6,7 +6,7 @@ function Read-JaxYaml {
     )
 
     $commonParams = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
     if (-not (Test-Path -Path $Path -PathType Leaf)) {
         throw "Jax YAML file not found: '$Path'"
     }

@@ -5,9 +5,15 @@ function Initialize-JaxPsakeProvider {
     )
 
     $commonParams = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     $bundled = Join-Path (Get-JaxToolRoot) 'psake/src/psake.psm1'
+    # Called once per discovered directory; a forced re-import each time cost
+    # ~0.3 s per environment. Keep the bundled module once it is loaded.
+    $loaded = Get-Command -Name Invoke-psake -ErrorAction SilentlyContinue
+    if ($null -ne $loaded -and $loaded.Module -and $loaded.Module.Path -eq $bundled) {
+        return
+    }
     if (Test-Path -LiteralPath $bundled -PathType Leaf) {
         Import-Module $bundled -Force -DisableNameChecking -ErrorAction SilentlyContinue
         $command = Get-Command -Name Invoke-psake -ErrorAction SilentlyContinue

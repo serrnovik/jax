@@ -29,6 +29,7 @@ Describe 'Completion helpers' {
         $commands = Get-JaxCompletionCommands
         $commands | Should -Contain 'run'
         $commands | Should -Contain 'plan'
+        $commands | Should -Contain 'search'
         $commands | Should -Contain 'skill'
         $commands | Should -Contain 'info'
         $commands | Should -Contain 'vault'

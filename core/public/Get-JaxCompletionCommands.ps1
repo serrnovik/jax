@@ -9,6 +9,7 @@ function Get-JaxCompletionCommands {
         # 'init-legacy',
         'env',
         'list-envs',
+        'search',
         'run',
         'r',
         'invoke',

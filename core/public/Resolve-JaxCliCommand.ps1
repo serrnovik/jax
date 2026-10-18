@@ -95,7 +95,7 @@ function Resolve-JaxCliCommand {
     $knownCommands = @(
         'help', 'init',
         # 'init-compat', 'init-legacy',
-        'env', 'list-envs', 'list-tasks',
+        'env', 'list-envs', 'list-tasks', 'search',
         'run', 'r', 'invoke', 'plan', 'autocomplete', 'create-flavour', 'settings', 'skill', 'info', 'vault',
         # 'update' manages the Jax install itself. Like every other name on this
         # list it shadows a same-named task; `jax run -only update` still reaches

@@ -7,10 +7,23 @@ function Get-JaxIncludedFiles {
     )
 
     $commonParams = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     if (-not (Test-Path -Path $FilePath -PathType Leaf)) {
         return @()
+    }
+
+    # In-process memo, keyed by write time and size (see Get-JaxPsakeTaskInfoByParsing).
+    $cacheKey = $null
+    if (-not $NoCache) {
+        $item = Get-Item -LiteralPath $FilePath
+        $cacheKey = '{0}|{1}|{2}' -f $item.FullName.ToLowerInvariant(), $item.LastWriteTimeUtc.Ticks, $item.Length
+        if (-not (Test-Path -Path variable:script:JaxIncludedFilesCache)) {
+            $script:JaxIncludedFilesCache = @{}
+        }
+        if ($script:JaxIncludedFilesCache.ContainsKey($cacheKey)) {
+            return $script:JaxIncludedFilesCache[$cacheKey]
+        }
     }
 
     $included = @()
@@ -62,5 +75,8 @@ function Get-JaxIncludedFiles {
         }
     }
 
+    if ($null -ne $cacheKey) {
+        $script:JaxIncludedFilesCache[$cacheKey] = $included
+    }
     return $included
 }

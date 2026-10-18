@@ -13,7 +13,7 @@ function Convert-JaxRunEntityName {
     # User asked for "each function".
     Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $Name"
 
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
         return ''

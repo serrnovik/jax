@@ -12,7 +12,7 @@ function Invoke-JaxRunEntities {
     )
 
     $commonParams = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     if (-not ($Context.ContainsKey('CommonParameters') -and $Context['CommonParameters'] -is [System.Collections.IDictionary])) {
         $Context['CommonParameters'] = Get-JaxCommonParameters -BoundParameters $PSBoundParameters

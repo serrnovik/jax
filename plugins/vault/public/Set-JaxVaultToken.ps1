@@ -164,7 +164,9 @@ function Set-JaxVaultToken {
                 return
             }
 
-            $vaultCommand = Get-Command vault -CommandType Application -ErrorAction Stop
+            # Multiple PATH locations can resolve to native applications (for
+            # example /usr/bin and /bin). Match normal command PATH precedence.
+            $vaultCommand = Get-Command vault -CommandType Application -ErrorAction Stop | Select-Object -First 1
             $loginResult = Invoke-JaxNativeCommandWithStandardInput `
                 -FilePath $vaultCommand.Source `
                 -Arguments @('write', '-format=json', "auth/$authMount/login", 'token=-') `
@@ -213,7 +215,7 @@ function Set-JaxVaultToken {
         # Create an orphan so the saved repository token remains valid after
         # the short-lived interactive login token expires.
         $formatArg = '-format=json'
-        $vaultCommand = Get-Command vault -CommandType Application -ErrorAction Stop
+        $vaultCommand = Get-Command vault -CommandType Application -ErrorAction Stop | Select-Object -First 1
         $tokenCreateResult = Invoke-JaxNativeCommandWithStandardInput `
             -FilePath $vaultCommand.Source `
             -Arguments @('write', $formatArg, 'auth/token/create-orphan', "ttl=$tokenTtl", "policies=$policy") `

@@ -8,7 +8,7 @@ function Get-JaxScenarioRunEntities {
         [hashtable] $Context = @{}
     )
 
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     # Core defaults (repo-agnostic). IMPORTANT: do NOT auto-inject RepoRoot into Context here.
     # If RepoRoot is present, hooks/plugins may auto-load based on repo config. That is desired for CLI runs,

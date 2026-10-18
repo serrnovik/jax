@@ -61,6 +61,7 @@ git -C sample-app init
 jax -C ./sample-app init -client sample -env dev
 jax -C ./sample-app list-envs
 jax -C ./sample-app list-tasks -env sample/dev
+jax -C ./sample-app search build            # find a task in any environment
 jax -C ./sample-app run -env sample/dev -only Build -noSavedSettings
 ```
 

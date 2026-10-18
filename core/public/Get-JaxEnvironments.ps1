@@ -11,7 +11,7 @@ function Get-JaxEnvironments {
 
     $Config = Convert-JaxConfig -Config $Config
     $commonPSBoundParameters = Get-JaxCommonParameters -BoundParameters $PSBoundParameters
-    Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)"
+    if ($DebugPreference -ne 'SilentlyContinue') { Write-Debug "FUNC: $($MyInvocation.MyCommand.Name) Args: $($PSBoundParameters | ConvertTo-Json -Depth 1 -Compress -WarningAction SilentlyContinue)" }
 
     $dummyEnvConfig = @{}
     if ($Config.Keys -contains 'dummyEnv') {

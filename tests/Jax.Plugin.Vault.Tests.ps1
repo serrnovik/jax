@@ -394,7 +394,7 @@ $value = [Console]::In.ReadToEnd()
                 $result.StdOut | Should -Be ([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($inputText)))
             }
 
-            It "uses the configured GitHub auth mount without putting the GitHub token in process arguments" {
+            It "uses the first Vault application and configured GitHub auth mount without credentials in process arguments" {
                 $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
                 $tmpTokenPath = Join-Path $tmpRoot 'token'
 
@@ -413,6 +413,7 @@ $value = [Console]::In.ReadToEnd()
                 Mock Read-JaxPromptBool { return $false }
                 Mock Get-Command {
                     [pscustomobject]@{ Source = '/test/bin/vault' }
+                    [pscustomobject]@{ Source = '/test/other/vault' }
                 } -ParameterFilter { $Name -eq 'vault' }
                 Mock Invoke-JaxNativeCommandWithStandardInput {
                     param($FilePath, $Arguments, $StandardInput)
@@ -441,7 +442,7 @@ $value = [Console]::In.ReadToEnd()
                 (Get-Content -Path $tmpTokenPath -Raw).Trim() | Should -Be 'vault-child-token'
             }
 
-            It "mints configured repository tokens as long-lived orphans" {
+            It "mints configured repository tokens as long-lived orphans using the first Vault application" {
                 $tmpRoot = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
                 $tmpTokenPath = Join-Path $tmpRoot 'token'
 
@@ -460,6 +461,7 @@ $value = [Console]::In.ReadToEnd()
                 Mock Read-JaxPromptBool { return $false }
                 Mock Get-Command {
                     [pscustomobject]@{ Source = '/test/bin/vault' }
+                    [pscustomobject]@{ Source = '/test/other/vault' }
                 } -ParameterFilter { $Name -eq 'vault' }
                 Mock Invoke-JaxNativeCommandWithStandardInput {
                     param($FilePath, $Arguments, $StandardInput)
