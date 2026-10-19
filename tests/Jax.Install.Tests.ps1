@@ -177,6 +177,8 @@ Describe 'Jax install provenance and update' {
                 $output | Should -Match 'Up to date'
                 Should -Invoke Save-JaxGalleryPackage -Times 0 -Exactly
                 Should -Invoke Read-Host -Times 0 -Exactly
+                # An explicit update must not trust the 24h notice cache.
+                Should -Invoke Get-JaxGalleryStatus -Times 1 -Exactly -ParameterFilter { $Force }
             }
         }
 

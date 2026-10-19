@@ -34,8 +34,7 @@ function Update-Jax {
     .PARAMETER Yes
         Skip the confirmation prompt.
     .PARAMETER Force
-        Reinstall even when the installed version already matches, and bypass the
-        24h version cache.
+        Reinstall even when the installed version already matches.
     .EXAMPLE
         jax update --check
         Show where Jax is installed from and whether it is current.
@@ -60,7 +59,9 @@ function Update-Jax {
     $info = Get-JaxInstallInfo -RuntimeRoot $RuntimeRoot -IncludeGalleryCopies
     # Bound to this runtime rather than resolved by bare name - see
     # Get-JaxGalleryStatus for why that distinction matters here of all places.
-    $status = Get-JaxGalleryStatus -RuntimeRoot $RuntimeRoot -Force:$Force
+    # Always ask the Gallery: the 24h cache is for the passive update notice,
+    # and right after a release it would report the previous version as current.
+    $status = Get-JaxGalleryStatus -RuntimeRoot $RuntimeRoot -Force
 
     # The version that matters is the one in ~/.jax/module - the copy the shims
     # load - not the checkout this command may be running from.
