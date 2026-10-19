@@ -29,6 +29,27 @@ Describe 'Test-JaxTaskPatternMatch' {
     }
 }
 
+Describe 'Get-JaxTaskPatternSpan' {
+    It 'locates the matched part for highlighting' {
+        InModuleScope Jax.Core {
+            $span = Get-JaxTaskPatternSpan -Name 'EnsureTerraformInstalled' -Pattern 'TERRA'
+            $span.Index | Should -Be 6
+            $span.Length | Should -Be 5
+
+            $wild = Get-JaxTaskPatternSpan -Name 'EnsureTerraformInstalled' -Pattern '*ensure*install*'
+            $wild.Index | Should -Be 0
+            'EnsureTerraformInstalled'.Substring($wild.Index, $wild.Length) | Should -Be 'EnsureTerraformInstall'
+        }
+    }
+
+    It 'returns nothing for no match or a bare wildcard' {
+        InModuleScope Jax.Core {
+            Get-JaxTaskPatternSpan -Name 'Build' -Pattern 'helm' | Should -BeNullOrEmpty
+            Get-JaxTaskPatternSpan -Name 'Build' -Pattern '*' | Should -BeNullOrEmpty
+        }
+    }
+}
+
 Describe 'Find-JaxTasks' {
     It 'finds a task in every environment that has it, and filters environments' {
         $config = Get-JaxConfig -RepoRoot $script:fixtureRoot
@@ -46,11 +67,20 @@ Describe 'jax.ps1 search' {
     It 'prints a runnable command per match' {
         Push-Location $script:jaxRoot
         try {
-            $output = & $script:scriptPath -C $script:fixtureRoot 'search' 'devonly' 6>&1 | ForEach-Object { "$_" }
+            $records = & $script:scriptPath -C $script:fixtureRoot 'search' 'devonly' 6>&1
         } finally {
             Pop-Location
         }
-        ($output -join "`n") | Should -Match 'jx -e jax_client/dev run -o DevOnly'
+        # Output is coloured in pieces (Write-Host -NoNewline); join it the way a console renders it.
+        $text = -join @(foreach ($record in $records) {
+                $message = if ($record -is [System.Management.Automation.InformationRecord]) { $record.MessageData } else { $null }
+                if ($message -is [System.Management.Automation.HostInformationMessage]) {
+                    $message.Message + $(if ($message.NoNewLine) { '' } else { "`n" })
+                } else {
+                    "$record`n"
+                }
+            })
+        $text | Should -Match 'jx -e jax_client/dev run -o DevOnly'
     }
 
     It 'prints usage without a pattern' {

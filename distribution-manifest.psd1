@@ -1,5 +1,5 @@
 @{
-    Version = '0.1.20'
+    Version = '0.1.21'
     Files = @(
         'VERSION'
         'LICENSE'

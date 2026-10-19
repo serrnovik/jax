@@ -709,12 +709,24 @@ begin {
             # Tasks from shared psake files exist in most environments; show a few.
             $maxEnvs = 3
             foreach ($group in ($found | Group-Object -Property Task)) {
-                Write-Host $group.Name
+                # Task name with the matched part highlighted.
+                $taskName = [string]$group.Name
+                $span = Get-JaxTaskPatternSpan -Name $taskName -Pattern $pattern
+                if ($null -eq $span) {
+                    Write-Host $taskName -ForegroundColor White
+                } else {
+                    Write-Host $taskName.Substring(0, $span.Index) -ForegroundColor White -NoNewline
+                    Write-Host $taskName.Substring($span.Index, $span.Length) -ForegroundColor Black -BackgroundColor Yellow -NoNewline
+                    Write-Host $taskName.Substring($span.Index + $span.Length) -ForegroundColor White
+                }
                 foreach ($match in @($group.Group | Select-Object -First $maxEnvs)) {
-                    Write-Host "  jx -e $($match.Env) run -o $($match.Task)"
+                    Write-Host '  jx -e ' -ForegroundColor DarkGray -NoNewline
+                    Write-Host $match.Env -ForegroundColor Cyan -NoNewline
+                    Write-Host ' run -o ' -ForegroundColor DarkGray -NoNewline
+                    Write-Host $match.Task -ForegroundColor Gray
                 }
                 if ($group.Count -gt $maxEnvs) {
-                    Write-Host "  ... and $($group.Count - $maxEnvs) more environments (narrow with -e <env-pattern>)"
+                    Write-Host "  ... and $($group.Count - $maxEnvs) more environments (narrow with -e <env-pattern>)" -ForegroundColor DarkGray
                 }
             }
         }

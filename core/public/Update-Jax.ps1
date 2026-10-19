@@ -138,7 +138,7 @@ function Update-Jax {
     try {
         if (Install-JaxStagedPackage -StagedRoot $staged -InstallRoot $installRoot) {
             Write-Host ("  Jax {0} installed to {1}" -f $status.LatestVersion, $installRoot) -ForegroundColor Green
-            Write-Host '  Restart your terminal to load it.' -ForegroundColor DarkGray
+            Write-JaxSessionReload -InstallRoot $installRoot
         }
     } finally {
         Remove-Item -LiteralPath (Split-Path -Parent $staged) -Recurse -Force -ErrorAction SilentlyContinue
