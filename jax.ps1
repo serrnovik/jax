@@ -371,6 +371,7 @@ begin {
     } catch {
         throw "Failed to import Jax core module '$coreModulePath': $($_.Exception.Message)"
     }
+    Sync-JaxSessionModule
 
     $repoRootParams = @{}
     if (-not [string]::IsNullOrWhiteSpace($RepoRoot)) {

@@ -1,6 +1,6 @@
 @{
     RootModule = 'Jax.psm1'
-    ModuleVersion = '0.1.21'
+    ModuleVersion = '0.1.22'
     GUID = '1ea40670-b2f8-4daa-bc38-724f570ee4d9'
     Author = 'Sergey Novikov <sergey@novik.fr>'
     Copyright = 'Copyright 2026 Sergey Novikov'
@@ -27,7 +27,7 @@
             Tags = @('automation', 'cli', 'powershell', 'psake', 'tasks')
             ProjectUri = 'https://github.com/serrnovik/jax'
             LicenseUri = 'https://github.com/serrnovik/jax/blob/main/LICENSE'
-            ReleaseNotes = '0.1.21: `jax search` output is coloured: the matched part of each task name is highlighted and the environment stands out in each command. `jax update` loads the new version into the current PowerShell session instead of asking for a terminal restart; the jx shell shims already pick it up on their next run.'
+            ReleaseNotes = '0.1.22: A PowerShell session whose Jax is older than the copy on disk (updated from another terminal, or by an updater that predates the automatic reload) reloads it on the next jx command. If the reload fails, jx prints the Import-Module command to run.'
         }
     }
 }

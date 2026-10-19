@@ -29,6 +29,7 @@ function Write-JaxSessionReload {
             Select-Object -First 1
         Write-Host ("  Loaded Jax {0} into this session." -f $loaded.Version) -ForegroundColor DarkGray
     } catch {
-        Write-Host ("  Could not load it into this session ({0}). Restart your terminal." -f $_.Exception.Message) -ForegroundColor Yellow
+        Write-Host ("  Could not load it into this session ({0}). Run this, or restart your terminal:" -f $_.Exception.Message) -ForegroundColor Yellow
+        Write-Host ("  Import-Module '{0}' -Global -Force -DisableNameChecking" -f $manifest.Replace("'", "''")) -ForegroundColor Cyan
     }
 }
