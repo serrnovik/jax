@@ -94,8 +94,10 @@ if ([string]::IsNullOrWhiteSpace($apiKey)) {
     throw 'PSGALLERY_API_KEY is not set.'
 }
 
+# Pass Jax.psd1 itself: given the folder, PSResourceGet may pick
+# distribution-manifest.psd1 as the module manifest (it does on Windows).
 Publish-PSResource `
-    -Path ./.artifacts/Jax `
+    -Path ./.artifacts/Jax/Jax.psd1 `
     -Repository PSGallery `
     -ApiKey $apiKey
 ```
