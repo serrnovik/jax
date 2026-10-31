@@ -78,6 +78,9 @@ function Get-JaxBobRunConfig {
         $cliOverrides = $Context['RunConfigOverrides']
     }
 
+    # Kept for the build-module resolver when applyLayersToModules is on.
+    $Context['RunConfigLayerConfig'] = $repoConfig
+
     Write-Debug ("Get-JaxBobRunConfig: merging layers (defaults/run/env/repo/user/cli)")
     $merged = Merge-JaxRunConfigLayers -Defaults $defaults -RunConfig $runConfig -EnvConfig $envConfig -RepoConfig $repoConfig -UserConfig $userConfig -CliOverrides $cliOverrides @commonPSBoundParameters
 

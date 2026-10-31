@@ -109,21 +109,9 @@ function Register-JaxCoveragePlugin {
             }
             $context['CoverageEnabledOverride'] = $coverageEnabled
 
-            # Wipe coverage/ at run start so stale coverage-final.json from a
-            # prior run doesn't get picked up by the merge step.
-            if ($coverageEnabled) {
-                $repoRoot = $context['RepoRoot']
-                if (-not [string]::IsNullOrWhiteSpace($repoRoot)) {
-                    $coverageRoot = Join-Path $repoRoot 'coverage'
-                    if (Test-Path -LiteralPath $coverageRoot) {
-                        try {
-                            Remove-Item -LiteralPath $coverageRoot -Recurse -Force -ErrorAction Stop
-                        } catch {
-                            Write-Warning "[coverage-plugin] Could not clear $coverageRoot before run: $_"
-                        }
-                    }
-                }
-            }
+            # Stale outputs are cleared per entity in BeforeRunEntity. Wiping all of
+            # coverage/ here races parallel CI steps sharing one workspace: a jax run
+            # starting later deleted the .tmp dir of a Vitest still running elsewhere.
         }
 
         # Set or clear the per-language coverage env vars + $env:COVERAGE_DIR before
@@ -227,6 +215,19 @@ function Register-JaxCoveragePlugin {
             if ([string]::IsNullOrWhiteSpace($sanitized)) { $sanitized = 'entity' }
 
             $env:COVERAGE_DIR = "coverage/$sanitized"
+
+            # Clear only this entity's subdir so a stale coverage-final.json from a
+            # prior run isn't merged, without touching other entities' live outputs.
+            if (-not [string]::IsNullOrWhiteSpace($repoRoot)) {
+                $entityCoverageDir = Join-Path $repoRoot $env:COVERAGE_DIR
+                if (Test-Path -LiteralPath $entityCoverageDir) {
+                    try {
+                        Remove-Item -LiteralPath $entityCoverageDir -Recurse -Force -ErrorAction Stop
+                    } catch {
+                        Write-Warning "[coverage-plugin] Could not clear $entityCoverageDir before run: $_"
+                    }
+                }
+            }
         }
 
         # Restore env vars and merge per-entity coverage into a single repo-level report.

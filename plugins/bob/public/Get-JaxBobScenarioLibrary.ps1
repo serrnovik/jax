@@ -44,10 +44,13 @@ function Get-JaxBobScenarioLibrary {
         $suite = $FlowConfig['suite']
         if ($suite -is [System.Collections.IDictionary] -and ($suite.Keys -contains 'library')) {
             $suiteLibrary = $suite['library']
-            if ($suiteLibrary -isnot [System.Collections.IDictionary]) {
+            if ($null -eq $suiteLibrary) {
+                # Boss files write `library:` with nothing under it.
+            } elseif ($suiteLibrary -isnot [System.Collections.IDictionary]) {
                 throw "suite.library must be a map/object."
+            } else {
+                $library = Merge-JaxHashtable -Base $library -Overlay $suiteLibrary
             }
-            $library = Merge-JaxHashtable -Base $library -Overlay $suiteLibrary
         }
     }
 
@@ -57,9 +60,15 @@ function Get-JaxBobScenarioLibrary {
     }
 
     if ($expand -and $library.Count -gt 0) {
-        $varsOverride = $null
-        if ($Context.ContainsKey('VariablesOverride')) {
-            $varsOverride = $Context['VariablesOverride']
+        # Library files are written against the merged bobfile (`{{ module.* }}`),
+        # which lives on the run config. Hook variables (env.git.root, boss.suite)
+        # stay on top when both define the same key.
+        $varsOverride = @{}
+        if ($Context.ContainsKey('RunConfig') -and $Context['RunConfig'] -is [System.Collections.IDictionary]) {
+            $varsOverride = $Context['RunConfig']
+        }
+        if ($Context.ContainsKey('VariablesOverride') -and $Context['VariablesOverride'] -is [System.Collections.IDictionary]) {
+            $varsOverride = Merge-JaxHashtable -Base $varsOverride -Overlay $Context['VariablesOverride']
         }
         $ignoreMissing = $false
         if ($pluginConfig.ContainsKey('ignoreMissingPlaceholders')) {

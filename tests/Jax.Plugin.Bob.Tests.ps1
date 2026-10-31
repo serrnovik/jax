@@ -215,6 +215,110 @@ Describe 'Bob hook VariablesOverride' {
 
         Remove-Item -Path $tempRoot -Recurse -Force
     }
+
+    It 'exposes flow file name, suite features and git branch' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $tempRoot | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $tempRoot '.git') -Force | Out-Null
+
+        $config = Get-JaxConfig -RepoRoot $tempRoot -UserConfigPath (Join-Path $tempRoot 'no-user.yml')
+        $context = @{
+            RepoRoot    = $tempRoot
+            Config      = $config
+            EnvDir      = $null
+            SelectedEnv = [pscustomobject]@{ Name = 'acme/dev/pack' }
+        }
+
+        InModuleScope Jax.Core {
+            $script:JaxPluginRegistry = @()
+            $script:JaxPluginsLoaded = $false
+        }
+        Register-JaxBobPlugin
+
+        Invoke-JaxHooks -Name 'BeforeSequenceResolve' -Context $context -Data @{
+            FlowConfig     = @{ suite = @{ features = @{ publish = @{ framework = 'net10' } }; version = @{ postfix = '-x' } } }
+            Scenario       = $null
+            FlowConfigPath = (Join-Path $tempRoot 'env/acme/dev/boss/pack.yml')
+        }
+
+        $context.VariablesOverride.boss.configuration | Should -Be 'pack'
+        $context.VariablesOverride.flow.configuration | Should -Be 'pack'
+        $context.VariablesOverride.boss.suite.features.publish.framework | Should -Be 'net10'
+        # The stub version stays authoritative for base/number; extra keys from the flow file survive.
+        $context.VariablesOverride.boss.suite.version.number | Should -Be '0.0.0'
+        $context.VariablesOverride.boss.suite.version.postfix | Should -Be '-x'
+        $context.VariablesOverride.env.git.Contains('branch') | Should -BeTrue
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+
+    It 'applies repo variables over the stub but keeps computed env.git and build counter' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path (Join-Path $tempRoot '.git') -Force | Out-Null
+        New-Item -ItemType Directory -Path (Join-Path $tempRoot '.jax') -Force | Out-Null
+        @'
+jax:
+  plugins:
+    config:
+      bob:
+        variables:
+          boss:
+            suite:
+              version:
+                base: "9.9.9"
+          module:
+            branch_name: "{{ env.git.branch }}"
+          env:
+            git:
+              root: /stale/path
+            build:
+              counter: 42
+'@ | Set-Content -Path (Join-Path $tempRoot '.jax/jax.config.yml') -Encoding utf8
+
+        $config = Get-JaxConfig -RepoRoot $tempRoot -UserConfigPath (Join-Path $tempRoot 'no-user.yml')
+        $context = @{
+            RepoRoot    = $tempRoot
+            Config      = $config
+            EnvDir      = $null
+            SelectedEnv = [pscustomobject]@{ Name = 'acme/dev/pack' }
+        }
+
+        InModuleScope Jax.Core {
+            $script:JaxPluginRegistry = @()
+            $script:JaxPluginsLoaded = $false
+        }
+        Register-JaxBobPlugin
+
+        Invoke-JaxHooks -Name 'BeforeSequenceResolve' -Context $context -Data @{
+            FlowConfig     = @{ suite = @{} }
+            Scenario       = $null
+            FlowConfigPath = (Join-Path $tempRoot 'env/acme/dev/boss/pack.yml')
+        }
+
+        $context.VariablesOverride.boss.suite.version.base | Should -Be '9.9.9'
+        $context.VariablesOverride.module.branch_name | Should -Be '{{ env.git.branch }}'
+        $context.VariablesOverride.env.git.root | Should -Be $tempRoot
+        $context.VariablesOverride.env.build.counter | Should -Be 0
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+}
+
+Describe 'Merge-JaxRunEntityList name collisions' {
+    It 'keeps a build module over a same-named script, but lets a script replace a task' {
+        InModuleScope Jax.Core {
+            $module = [ordered]@{ Key = 'engine'; Runner = 'psake'; PsakeFile = '/code/engine/psakefile.ps1'; Provenance = 'psake -> module' }
+            $task = [ordered]@{ Key = 'clean'; Runner = 'psake'; PsakeFile = '/env/common/psakefile.ps1'; Provenance = 'psake -> env/common' }
+            $engineScript = [ordered]@{ Key = 'engine'; Runner = 'script'; Script = '/scripts/engine/run/engine.ps1'; Provenance = 'script' }
+            $cleanScript = [ordered]@{ Key = 'clean'; Runner = 'script'; Script = '/env/common/scripts/clean.ps1'; Provenance = 'script' }
+
+            $merged = @(Merge-JaxRunEntityList -Base @($module, $task) -Add @($engineScript, $cleanScript))
+
+            $merged.Count | Should -Be 2
+            ($merged | Where-Object { $_.Key -eq 'engine' }).Runner | Should -Be 'psake'
+            ($merged | Where-Object { $_.Key -eq 'clean' }).Runner | Should -Be 'script'
+        }
+    }
 }
 
 Describe 'Get-JaxBobEnvRunConfig' {
@@ -371,6 +475,97 @@ Describe 'Bob build modules as run entities' {
 
         Remove-Item -Path $tempRoot -Recurse -Force
     }
+
+    It 'reads bobfile when the repo opts in, and falls back when a modulePathInGit root is missing' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        $configDir = Join-Path $tempRoot '.jax'
+        $engineDir = Join-Path $tempRoot 'code/engine'
+        $dockerDir = Join-Path $tempRoot 'code/docker'
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $engineDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $dockerDir -Force | Out-Null
+
+        @'
+jax:
+  modulePathInGit:
+    default: code
+    docker: devops
+  plugins:
+    config:
+      bob:
+        fileBaseNames:
+          - jaxfile
+          - bobfile
+'@ | Set-Content -Path (Join-Path $configDir 'jax.config.yml') -Encoding utf8
+
+        Set-Content -Path (Join-Path $engineDir 'psakefile.ps1') -Value "task default { }" -Encoding utf8
+        Set-Content -Path (Join-Path $engineDir 'bobfile.yml') -Value "---`nmodule:`n  public_name: engine`n" -Encoding utf8
+        Set-Content -Path (Join-Path $dockerDir 'psakefile.ps1') -Value "task default { }" -Encoding utf8
+        Set-Content -Path (Join-Path $dockerDir 'jaxfile.yml') -Value "---`nmodule:`n  public_name: docker`n" -Encoding utf8
+
+        $flowConfig = @{
+            suite = @{
+                modules = @{
+                    engine = $null
+                    docker = @{ tasks = @('BuildImage') }
+                }
+            }
+        }
+        $context = @{
+            RepoRoot = $tempRoot
+            Config   = Get-JaxConfig -RepoRoot $tempRoot -SkipUserConfig
+        }
+
+        $entities = Get-JaxBuildRunEntities -FlowConfig $flowConfig -Context $context -ProvenancePath (Join-Path $tempRoot 'env/acme/dev/boss/build.yml')
+        $engine = $entities | Where-Object { $_.Key -eq 'engine' } | Select-Object -First 1
+        $docker = $entities | Where-Object { $_.Key -eq 'docker' } | Select-Object -First 1
+
+        $engine.PsakeFile | Should -Be (Resolve-Path (Join-Path $engineDir 'psakefile.ps1')).Path
+        $engine.Args.module.public_name | Should -Be 'engine'
+        $docker.PsakeFile | Should -Be (Resolve-Path (Join-Path $dockerDir 'psakefile.ps1')).Path
+        $docker.Args.module.public_name | Should -Be 'docker'
+        @($docker.Tasks) | Should -Be @('BuildImage')
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+
+    It 'uses modulePathInGit when that root exists' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        $configDir = Join-Path $tempRoot '.jax'
+        $dockerDir = Join-Path $tempRoot 'devops/docker'
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+        New-Item -ItemType Directory -Path $dockerDir -Force | Out-Null
+
+        @'
+jax:
+  modulePathInGit:
+    default: code
+    docker: devops
+  plugins:
+    config:
+      bob:
+        fileBaseNames:
+          - bobfile
+'@ | Set-Content -Path (Join-Path $configDir 'jax.config.yml') -Encoding utf8
+
+        Set-Content -Path (Join-Path $dockerDir 'psakefile.ps1') -Value "task default { }" -Encoding utf8
+        Set-Content -Path (Join-Path $dockerDir 'bobfile.yml') -Value "---`nmodule:`n  public_name: mapped-docker`n" -Encoding utf8
+
+        $flowConfig = @{
+            suite = @{
+                modules = @{
+                    docker = $null
+                }
+            }
+        }
+
+        $entities = Get-JaxBuildRunEntities -FlowConfig $flowConfig -Context @{ RepoRoot = $tempRoot; Config = (Get-JaxConfig -RepoRoot $tempRoot -SkipUserConfig) } -ProvenancePath (Join-Path $tempRoot 'boss/build.yml')
+        $docker = $entities | Where-Object { $_.Key -eq 'docker' } | Select-Object -First 1
+        $docker.PsakeFile | Should -Be (Resolve-Path (Join-Path $dockerDir 'psakefile.ps1')).Path
+        $docker.Args.module.public_name | Should -Be 'mapped-docker'
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
 }
 
 Describe 'Bob run-config for computed envs' {
@@ -453,6 +648,42 @@ Describe 'Bob scenarios-lib discovery and precedence' {
 
         $result = Get-JaxBobScenarioLibrary -RepoRoot $tempRoot -EnvDir (Join-Path $tempRoot 'env/sample-app') -Config $config -FlowConfig $flowConfig -PluginConfig @{} -Context $context
         $result.Library.lib_override.tasks[0] | Should -Be 'Test1'
+
+        Remove-Item -Path $tempRoot -Recurse -Force
+    }
+
+    It 'expands module placeholders in the library from the merged run config' {
+        $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+        $envCommon = Join-Path $tempRoot 'env/common/scenarios-lib'
+        New-Item -ItemType Directory -Path $envCommon -Force | Out-Null
+        Set-Content -Path (Join-Path $envCommon 'all.yaml') -Value @"
+all:
+  args:
+    datasetsRoot: `"{{ module.data.datasets_root }}/sample`"
+"@ -Encoding utf8
+
+        $config = @{
+            envRoot            = 'env'
+            commonDirName      = 'common'
+            scenarioLibDirName = 'scenarios-lib'
+        }
+        $context = @{
+            RunConfig = @{
+                module = @{
+                    data = @{
+                        datasets_root = '/datasets/acme'
+                    }
+                }
+            }
+            VariablesOverride = @{
+                env = @{
+                    git = @{ root = $tempRoot }
+                }
+            }
+        }
+
+        $result = Get-JaxBobScenarioLibrary -RepoRoot $tempRoot -EnvDir (Join-Path $tempRoot 'env/acme/dev') -Config $config -FlowConfig @{ suite = @{} } -PluginConfig @{} -Context $context
+        $result.Library.all.args.datasetsRoot | Should -Be '/datasets/acme/sample'
 
         Remove-Item -Path $tempRoot -Recurse -Force
     }
@@ -604,5 +835,40 @@ Describe 'Get-JaxBobLayerConfig user layer identity' {
         }
 
         Remove-Item -Path $root -Recurse -Force
+    }
+}
+
+Describe 'Bob missing library items' {
+    BeforeAll {
+        Import-Module (Join-Path $PSScriptRoot '../core/Jax.Core.psm1') -Force
+        Import-Module (Join-Path $PSScriptRoot '../plugins/bob/Jax.Plugin.Bob.psm1') -Force -DisableNameChecking
+    }
+
+    It 'throws when a null step is not in the library' {
+        InModuleScope Jax.Core {
+            $context = @{
+                ScenarioLibrary = @{}
+            }
+            { Convert-JaxScenarioItemToRunEntity -Key 'etl_step' -Value $null -ScenarioName 'nightly' -ProvenancePath 'boss.yml' -Context $context } |
+                Should -Throw '*etl_step*'
+        }
+    }
+
+    It 'leaves a null step as a task when missingLibraryItem is skip' {
+        InModuleScope Jax.Core {
+            $context = @{
+                ScenarioLibrary = @{}
+                Config          = @{
+                    plugins = @{
+                        config = @{
+                            bob = @{ missingLibraryItem = 'skip' }
+                        }
+                    }
+                }
+            }
+            $entity = Convert-JaxScenarioItemToRunEntity -Key 'etl_step' -Value $null -ScenarioName 'nightly' -ProvenancePath 'boss.yml' -Context $context
+            $entity.Key | Should -Be 'etl_step'
+            $entity.Runner | Should -Be 'psake'
+        }
     }
 }

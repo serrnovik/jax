@@ -1,3 +1,54 @@
+function Resolve-JaxBobModuleDirectory {
+    param (
+        [string] $RepoRoot,
+        [string] $Key,
+        [System.Collections.IDictionary] $Config
+    )
+
+    # modulePathInGit maps a module key (docker, helm) onto a root other than `default`.
+    # A mapped root that does not exist falls through to default, then `code`, so a stale
+    # map entry cannot hide the module that actually lives under the default root.
+    $rootNames = New-Object 'System.Collections.Generic.List[string]'
+    $seenRoots = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+
+    function Add-JaxBobModuleRoot {
+        param([string] $Name)
+        if ([string]::IsNullOrWhiteSpace($Name)) {
+            return
+        }
+        $trimmed = $Name.Trim().Trim('/', '\')
+        if ([string]::IsNullOrWhiteSpace($trimmed)) {
+            return
+        }
+        if ($seenRoots.Add($trimmed)) {
+            $rootNames.Add($trimmed) | Out-Null
+        }
+    }
+
+    $modulePathInGit = $null
+    if ($null -ne $Config -and $Config.ContainsKey('modulePathInGit') -and $Config['modulePathInGit'] -is [System.Collections.IDictionary]) {
+        $modulePathInGit = $Config['modulePathInGit']
+    }
+    if ($null -ne $modulePathInGit) {
+        if ($modulePathInGit.ContainsKey($Key)) {
+            Add-JaxBobModuleRoot -Name ([string]$modulePathInGit[$Key])
+        }
+        if ($modulePathInGit.ContainsKey('default')) {
+            Add-JaxBobModuleRoot -Name ([string]$modulePathInGit['default'])
+        }
+    }
+    Add-JaxBobModuleRoot -Name 'code'
+
+    foreach ($rootName in $rootNames) {
+        $candidate = Join-Path $RepoRoot (Join-Path $rootName $Key)
+        if (Test-Path -Path $candidate -PathType Container) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+
+    return $null
+}
+
 function Register-JaxBobScenarioResolvers {
     Register-JaxScenarioResolver -Name 'bob-build-module' -Order -20 -Handler {
         param($Key, $Value, $ScenarioName, $ProvenancePath, $Context)
@@ -16,25 +67,34 @@ function Register-JaxBobScenarioResolvers {
             $repoRoot = Get-JaxRepoRoot
         }
 
-        $jaxConfig = Get-JaxConfig -RepoRoot $repoRoot
-        $moduleRootDirName = 'code'
-        if ($jaxConfig -and $jaxConfig.ContainsKey('modulePathInGit') -and $jaxConfig['modulePathInGit'] -is [System.Collections.IDictionary]) {
-            $modulePathInGit = $jaxConfig['modulePathInGit']
-            if ($modulePathInGit.ContainsKey('default') -and -not [string]::IsNullOrWhiteSpace($modulePathInGit['default'])) {
-                $moduleRootDirName = [string]$modulePathInGit['default']
-            }
+        $jaxConfig = $null
+        if ($Context -and $Context.ContainsKey('Config') -and $Context['Config'] -is [System.Collections.IDictionary]) {
+            $jaxConfig = $Context['Config']
+        }
+        if ($null -eq $jaxConfig) {
+            $jaxConfig = Get-JaxConfig -RepoRoot $repoRoot
         }
 
-        $moduleDir = Join-Path $repoRoot (Join-Path $moduleRootDirName $Key)
-        if (-not (Test-Path -Path $moduleDir -PathType Container)) {
+        $moduleDir = Resolve-JaxBobModuleDirectory -RepoRoot $repoRoot -Key $Key -Config $jaxConfig
+        if ([string]::IsNullOrWhiteSpace($moduleDir)) {
             # Not a module path; let other resolvers handle it.
             return $null
         }
 
-        # Find module bobfile/jaxfile
-        $pluginDefaults = Get-JaxBobPluginDefaults
-        $fileBaseNames = @($pluginDefaults.fileBaseNames)
-        $fileExtensions = @($pluginDefaults.fileExtensions)
+        # Find module bobfile/jaxfile. Repo config can opt into bobfile; the default stays jaxfile.
+        $bobPluginConfig = $null
+        if ($jaxConfig.ContainsKey('plugins') -and $jaxConfig['plugins'] -is [System.Collections.IDictionary]) {
+            $plugins = $jaxConfig['plugins']
+            if ($plugins.ContainsKey('config') -and $plugins['config'] -is [System.Collections.IDictionary]) {
+                $pluginConfigs = $plugins['config']
+                if ($pluginConfigs.ContainsKey('bob') -and $pluginConfigs['bob'] -is [System.Collections.IDictionary]) {
+                    $bobPluginConfig = $pluginConfigs['bob']
+                }
+            }
+        }
+        $resolvedBobConfig = Get-JaxBobPluginConfig -PluginConfig $bobPluginConfig
+        $fileBaseNames = @($resolvedBobConfig['fileBaseNames'])
+        $fileExtensions = @($resolvedBobConfig['fileExtensions'])
         $candidateBobFile = $null
         foreach ($baseName in $fileBaseNames) {
             foreach ($ext in $fileExtensions) {
@@ -54,6 +114,13 @@ function Register-JaxBobScenarioResolvers {
         $moduleConfig = @{}
         if ($candidateBobFile) {
             $moduleConfig = Read-JaxRunConfigFile -Path $candidateBobFile -RepoRoot $repoRoot
+
+            # Opt-in: local/CI/named override layers win over the module file, the way
+            # machine overrides are applied on top of each module in older layouts.
+            if ($resolvedBobConfig.Contains('applyLayersToModules') -and [bool]$resolvedBobConfig['applyLayersToModules'] -and
+                $Context -and $Context.ContainsKey('RunConfigLayerConfig') -and $Context['RunConfigLayerConfig'] -is [System.Collections.IDictionary]) {
+                $moduleConfig = Merge-JaxHashtable -Base $moduleConfig -Overlay $Context['RunConfigLayerConfig']
+            }
 
             $varsOverride = $null
             if ($Context -and $Context.ContainsKey('VariablesOverride')) {
@@ -153,6 +220,27 @@ function Register-JaxBobScenarioResolvers {
         }
 
         if (-not $library.Contains($Key)) {
+            # Legacy-format scenarios use a null step for a task name that is not in
+            # scenarios-lib. Default stays throw so a typo'd library reference still fails.
+            $missingLibraryItem = 'throw'
+            if ($Context.ContainsKey('Config') -and $Context['Config'] -is [System.Collections.IDictionary]) {
+                $cfg = $Context['Config']
+                if ($cfg.ContainsKey('plugins') -and $cfg['plugins'] -is [System.Collections.IDictionary]) {
+                    $plugins = $cfg['plugins']
+                    if ($plugins.ContainsKey('config') -and $plugins['config'] -is [System.Collections.IDictionary]) {
+                        $pluginConfigs = $plugins['config']
+                        if ($pluginConfigs.ContainsKey('bob') -and $pluginConfigs['bob'] -is [System.Collections.IDictionary]) {
+                            $bobConfig = $pluginConfigs['bob']
+                            if ($bobConfig.ContainsKey('missingLibraryItem') -and -not [string]::IsNullOrWhiteSpace([string]$bobConfig['missingLibraryItem'])) {
+                                $missingLibraryItem = [string]$bobConfig['missingLibraryItem']
+                            }
+                        }
+                    }
+                }
+            }
+            if ($missingLibraryItem -eq 'skip') {
+                return $null
+            }
             throw "Library item '$Key' not found in scenarios-lib or suite.library."
         }
 

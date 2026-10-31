@@ -176,6 +176,16 @@ function Convert-JaxConfigForSave {
                 }
             }
 
+            # Optional keys: written only when the repo sets them.
+            foreach ($optionalKey in @('missingLibraryItem', 'applyLayersToModules')) {
+                if ($pluginConfig.Keys -contains $optionalKey) {
+                    $orderedBob[$optionalKey] = $pluginConfig[$optionalKey]
+                }
+            }
+            if ($pluginConfig['variables'] -is [System.Collections.IDictionary]) {
+                $orderedBob['variables'] = Convert-JaxOrderedMap -Map $pluginConfig['variables']
+            }
+
             $orderedPluginConfig[$pluginName] = $orderedBob
             continue
         }

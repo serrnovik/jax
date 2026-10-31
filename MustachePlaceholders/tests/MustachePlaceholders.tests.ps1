@@ -435,6 +435,23 @@ Describe "Expand-FlatDottedHashtable" {
 }
 
 Describe "Pipeline functions (partial Jinja)" {
+    It "toCanonicalDotnet maps short target frameworks and leaves others alone" {
+        $ht = @{
+            a = 'net80'; b = 'net10'; c = 'net100'; d = 'net472'; e = 'net8.0'; f = 'netcoreapp31'; g = 'net48'
+            oa = "{{ a | toCanonicalDotnet }}"; ob = "{{ b | toCanonicalDotnet }}"; oc = "{{ c | toCanonicalDotnet }}"
+            od = "{{ d | toCanonicalDotnet }}"; oe = "{{ e | toCanonicalDotnet }}"; of = "{{ f | toCanonicalDotnet }}"
+            og = "{{ g | toCanonicalDotnet }}"
+        }
+        $e = Expand-Placeholders $ht
+        $e.oa | Should -BeExactly 'net8.0'
+        $e.ob | Should -BeExactly 'net10.0'
+        $e.oc | Should -BeExactly 'net10.0'
+        $e.od | Should -BeExactly 'net472'
+        $e.oe | Should -BeExactly 'net8.0'
+        $e.of | Should -BeExactly 'netcoreapp3.1'
+        $e.og | Should -BeExactly 'net48'
+    }
+
     It "eq + ifElse ternary works" {
         $ht = @{ module = @{ run_type = 'prod' } ; out = "{{ module.run_type | eq('prod') | ifElse('prod','sandbox') }}" }
         $expanded = Expand-Placeholders $ht

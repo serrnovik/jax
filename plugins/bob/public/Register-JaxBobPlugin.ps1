@@ -79,10 +79,20 @@ function Register-JaxBobPlugin {
                 }
             }
 
+            # Current branch for templates (`{{ env.git.branch }}`). Additive: nothing reads it unless a template asks.
+            # Empty on a detached checkout (symbolic-ref fails there instead of returning "HEAD").
+            $gitBranch = ''
+            try {
+                $branchText = (& git -C $repoRoot symbolic-ref --quiet --short HEAD 2>$null | Out-String).Trim()
+                if ($LASTEXITCODE -eq 0) { $gitBranch = $branchText }
+            } catch {
+                $gitBranch = ''
+            }
             $baseVars = @{
                 env  = @{
                     git   = @{
-                        root = $repoRoot
+                        root   = $repoRoot
+                        branch = $gitBranch
                     }
                     build = @{
                         counter = 0
@@ -117,6 +127,20 @@ function Register-JaxBobPlugin {
             $existingVarsOverride = @{}
             if ($context.ContainsKey('VariablesOverride') -and $context['VariablesOverride'] -is [System.Collections.IDictionary]) {
                 $existingVarsOverride = $context['VariablesOverride']
+            }
+            # Repo-defined template variables (plugins.config.bob.variables) replace the stub
+            # defaults above (suite version, ...). Computed values (env.git, build counter,
+            # worktree) and values already in the context (other plugins) still win.
+            if ($pluginConfig.Contains('variables') -and $pluginConfig['variables'] -is [System.Collections.IDictionary]) {
+                $computedVars = @{
+                    env = @{
+                        git      = $baseVars.env.git.Clone()
+                        build    = $baseVars.env.build.Clone()
+                        worktree = $baseVars.env.worktree
+                    }
+                }
+                $baseVars = Merge-JaxHashtable -Base $baseVars -Overlay $pluginConfig['variables'] @commonParams
+                $baseVars = Merge-JaxHashtable -Base $baseVars -Overlay $computedVars @commonParams
             }
             $context['VariablesOverride'] = Merge-JaxHashtable -Base $baseVars -Overlay $existingVarsOverride @commonParams
 
@@ -176,6 +200,13 @@ function Register-JaxBobPlugin {
                 if ($null -ne $suiteVersion) {
                     $suiteVars.suite['version'] = $suiteVersion
                 }
+                # Keep the rest of the flow suite (features, modules, ...) so module
+                # files can read boss.suite.features.*.
+                foreach ($suiteKey in @($suite.Keys)) {
+                    if (-not $suiteVars.suite.Contains($suiteKey)) {
+                        $suiteVars.suite[$suiteKey] = $suite[$suiteKey]
+                    }
+                }
                 $varsFlow = @{
                     boss = $suiteVars
                     flow = $suiteVars
@@ -213,6 +244,20 @@ function Register-JaxBobPlugin {
                 $envDir = Resolve-JaxEnvDirFromFlowPath -FlowConfigPath $flowConfigPath -Config $hook.Config -RepoRoot $repoRoot
                 if (-not [string]::IsNullOrWhiteSpace($envDir)) {
                     $context['EnvDir'] = $envDir
+                }
+            }
+
+            if ($hook.Data -and $hook.Data.ContainsKey('FlowConfigPath') -and -not [string]::IsNullOrWhiteSpace([string]$hook.Data['FlowConfigPath'])) {
+                # Flow file name without extension (build, pack, ...) as {{ boss.configuration }} / {{ flow.configuration }}.
+                $flowConfiguration = [IO.Path]::GetFileNameWithoutExtension([string]$hook.Data['FlowConfigPath'])
+                $vo = $context['VariablesOverride']
+                foreach ($domain in @('boss', 'flow')) {
+                    if (-not $vo.Contains($domain) -or $vo[$domain] -isnot [System.Collections.IDictionary]) {
+                        $vo[$domain] = @{}
+                    }
+                    if (-not $vo[$domain].Contains('configuration')) {
+                        $vo[$domain]['configuration'] = $flowConfiguration
+                    }
                 }
             }
 
