@@ -569,12 +569,26 @@ begin {
                 'info' { Get-JaxVaultStatus @commonParams }
                 'status' { Get-JaxVaultStatus @commonParams }
                 'reset' { Reset-JaxVault @commonParams }
+                'env' {
+                    # Prints shell code holding this repository's token. Evaluate it, never echo it.
+                    $shellName = 'pwsh'
+                    foreach ($envArg in $subArgs) {
+                        $candidate = ([string]$envArg).Trim().TrimStart('-').ToLowerInvariant()
+                        if ($candidate -in @('pwsh', 'powershell', 'bash', 'sh', 'zsh')) {
+                            $shellName = if ($candidate -eq 'powershell') { 'pwsh' } else { $candidate }
+                        }
+                    }
+                    Get-JaxVaultEnv -Shell $shellName @commonParams
+                }
                 'help' {
                     Write-Host "Usage: jax vault [command]"
                     Write-Host "Commands:"
                     Write-Host "  set (or login)  Authenticate with Vault (interactive)"
                     Write-Host "  status (or info)  Check Vault connection status"
                     Write-Host "  reset           Clear local Vault token"
+                    Write-Host '  env [bash]      Print VAULT_ADDR/VAULT_TOKEN for this repo. Evaluate, never echo:'
+                    Write-Host '                    pwsh: jx vault env | Out-String | Invoke-Expression'
+                    Write-Host '                    bash: eval "$(jx vault env bash)"'
                     Write-Host ""
                     Write-Host "Run overrides:"
                     Write-Host "  -vaultTokenEnv <name>  Use token from the named env var for one run"

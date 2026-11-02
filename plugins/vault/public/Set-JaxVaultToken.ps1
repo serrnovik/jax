@@ -78,7 +78,9 @@ function Set-JaxVaultToken {
         $tokenDir = $vaultCfg['tokenDir']
     }
     if (-not $configHasTokenDir) {
-        $tokenDirDefault = '.jax/vault'
+        # Default to a repository-keyed directory (.jax/<repo-key>/vault) so a
+        # login in one repository never replaces another repository's token.
+        $tokenDirDefault = Get-JaxVaultRepoKey -RepoRoot $repoRoot
         $tokenDir = Read-JaxPromptString -Prompt "Token directory (relative to HOME or absolute; shortcut: enter a project key)" -Default $tokenDirDefault
         if ([string]::IsNullOrWhiteSpace($tokenDir)) {
             $tokenDir = $tokenDirDefault
@@ -269,6 +271,13 @@ function Set-JaxVaultToken {
     }
     Set-Content -Path $tokenPath -Value $VaultToken -Force
     Set-JaxVaultTokenPermissions -TokenDirectory $tokenDir -TokenPath $tokenPath
+    # Record which Vault issued the token so a later address mismatch is reported.
+    $addressPath = Get-JaxVaultTokenAddressPath -TokenPath $tokenPath
+    if (-not [string]::IsNullOrWhiteSpace($VaultAddress)) {
+        Set-Content -Path $addressPath -Value $VaultAddress.Trim() -Force
+    } else {
+        Remove-Item -LiteralPath $addressPath -Force -ErrorAction SilentlyContinue
+    }
 
     # Also set in current session
     $env:VAULT_TOKEN = $VaultToken

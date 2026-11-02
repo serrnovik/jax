@@ -43,6 +43,13 @@ function Get-JaxVaultStatus {
     Write-Host "Address: $addr"
     Write-Host "Token:   $tokenStatus"
     Write-Host "Token path: $tokenPath"
+    $addressCheck = Test-JaxVaultTokenAddress -TokenPath $tokenPath -ConfiguredAddress $cfgAddr
+    if (-not [string]::IsNullOrWhiteSpace($addressCheck.SavedAddress)) {
+        Write-Host "Token issued by: $($addressCheck.SavedAddress)"
+    }
+    if ($addressCheck.Mismatch) {
+        Write-Warning "Saved token was issued by '$($addressCheck.SavedAddress)', not '$cfgAddr'. Run 'jx vault login' in this repository."
+    }
     if (-not [string]::IsNullOrWhiteSpace($cfgPolicy)) {
         Write-Host "Policy: $cfgPolicy"
     }

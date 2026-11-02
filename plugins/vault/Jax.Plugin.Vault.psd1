@@ -9,6 +9,7 @@
     FunctionsToExport = @(
         'Register-JaxVaultPlugin',
         'Connect-JaxVault',
+        'Get-JaxVaultEnv',
         'Get-JaxVaultStatus',
         'Reset-JaxVault',
         'Set-JaxVaultToken'

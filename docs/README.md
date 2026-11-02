@@ -958,6 +958,12 @@ agreed; basic scaffolds are implemented for several of them.
   - Purpose: HashiCorp Vault integration for secrets.
   - Hooks: BeforeSequenceResolve / BeforeRunEntity.
   - Config: plugins.config.vault.policy + tokenTtl (optional child-token minting).
+  - Token store: plugins.config.vault.tokenDir (default for new repositories:
+    `<repo-key>`, i.e. `~/.jax/<repo-key>/vault/token`). An `address` file next
+    to the token records the issuing Vault; jax warns when it differs from
+    plugins.config.vault.address. jax never reads or writes `~/.vault-token`.
+  - `jax vault env [bash]`: prints shell code that sets VAULT_ADDR/VAULT_TOKEN
+    from the repository token, for `eval` / `Invoke-Expression`.
 
 - dotenv (implemented, minimal)
   - Purpose: local .env loader with configurable patterns.

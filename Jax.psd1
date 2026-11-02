@@ -1,6 +1,6 @@
 @{
     RootModule = 'Jax.psm1'
-    ModuleVersion = '0.1.24'
+    ModuleVersion = '0.1.25'
     GUID = '1ea40670-b2f8-4daa-bc38-724f570ee4d9'
     Author = 'Sergey Novikov <sergey@novik.fr>'
     Copyright = 'Copyright 2026 Sergey Novikov'
@@ -27,7 +27,7 @@
             Tags = @('automation', 'cli', 'powershell', 'psake', 'tasks')
             ProjectUri = 'https://github.com/serrnovik/jax'
             LicenseUri = 'https://github.com/serrnovik/jax/blob/main/LICENSE'
-            ReleaseNotes = '0.1.24: bob plugin supports legacy-format repos (opt-in): `variables`, `applyLayersToModules`, `missingLibraryItem: skip`, `modulePathInGit` module roots, empty `library:`, `{{ env.git.branch }}` and `{{ boss.configuration }}`; new `toCanonicalDotnet` placeholder function. 0.1.23: `jax update` always asks the PowerShell Gallery instead of trusting the 24h update-notice cache, so a fresh release is found right away. 0.1.22: A PowerShell session whose Jax is older than the copy on disk (updated from another terminal, or by an updater that predates the automatic reload) reloads it on the next jx command. If the reload fails, jx prints the Import-Module command to run.'
+            ReleaseNotes = '0.1.25: each repo keeps its own Vault token: `jx vault env` sets VAULT_ADDR and VAULT_TOKEN from the repository token for pwsh or bash; new repos default to a repo-keyed token folder; jax warns when a saved token was issued by a different Vault address. 0.1.24: bob plugin supports legacy-format repos (opt-in): `variables`, `applyLayersToModules`, `missingLibraryItem: skip`, `modulePathInGit` module roots, empty `library:`, `{{ env.git.branch }}` and `{{ boss.configuration }}`; new `toCanonicalDotnet` placeholder function. 0.1.23: `jax update` always asks the PowerShell Gallery instead of trusting the 24h update-notice cache, so a fresh release is found right away. 0.1.22: A PowerShell session whose Jax is older than the copy on disk (updated from another terminal, or by an updater that predates the automatic reload) reloads it on the next jx command. If the reload fails, jx prints the Import-Module command to run.'
         }
     }
 }

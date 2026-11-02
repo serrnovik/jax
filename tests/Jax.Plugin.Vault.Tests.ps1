@@ -705,6 +705,121 @@ jax:
                 (Get-JaxVaultTokenPath) | Should -Be $expected
             }
         }
+
+        Context "Repository-keyed token store" {
+            It "derives the repo key from the origin remote name" {
+                $repo = Join-Path $TestDrive 'some-checkout'
+                New-Item -ItemType Directory -Path $repo -Force | Out-Null
+                & git -C $repo init --quiet
+                & git -C $repo remote add origin 'https://git.example/team/My_Repo.git'
+                Get-JaxVaultRepoKey -RepoRoot $repo | Should -Be 'my_repo'
+            }
+
+            It "falls back to a sanitized folder name outside git" {
+                $repo = Join-Path $TestDrive 'Plain Folder'
+                New-Item -ItemType Directory -Path $repo -Force | Out-Null
+                Mock git { $global:LASTEXITCODE = 128 }
+                Get-JaxVaultRepoKey -RepoRoot $repo | Should -Be 'plain-folder'
+            }
+
+            It "offers the repo key, not the shared .jax/vault, as the default token directory" {
+                $tmpTokenPath = Join-Path $TestDrive 'keyed/token'
+                Mock Get-JaxVaultTokenPath { $tmpTokenPath }
+                Mock Get-JaxVaultPluginConfig { @{ address = 'https://cfg.example' } }
+                Mock Get-JaxRepoRoot { '/tmp/repo' }
+                Mock Get-JaxConfig { @{ } }
+                Mock Update-JaxVaultRepoConfig { @{ } }
+                Mock Get-JaxVaultRepoKey { 'repo-key' }
+                $script:tokenDirDefault = $null
+                Mock Read-JaxPromptString {
+                    param($Prompt, $Default)
+                    if ($Prompt -like 'Token directory*') { $script:tokenDirDefault = $Default }
+                    return $Default
+                }
+
+                Set-JaxVaultToken -Method token -VaultToken 'abc' | Out-Null
+
+                $script:tokenDirDefault | Should -Be 'repo-key'
+                Assert-MockCalled Update-JaxVaultRepoConfig -ParameterFilter { $TokenDir -eq 'repo-key' }
+            }
+
+            It "saves the issuing Vault address next to the token" {
+                $tmpTokenPath = Join-Path $TestDrive 'addr/token'
+                Mock Get-JaxVaultTokenPath { $tmpTokenPath }
+                Mock Get-JaxVaultPluginConfig { @{ address = 'https://cfg.example'; tokenDir = '.jax/addr/vault' } }
+                Mock Get-JaxRepoRoot { '/tmp/repo' }
+                Mock Get-JaxConfig { @{ } }
+
+                Set-JaxVaultToken -Method token -VaultToken 'abc' | Out-Null
+
+                (Get-Content -LiteralPath (Join-Path $TestDrive 'addr/address') -Raw).Trim() | Should -Be 'https://cfg.example'
+            }
+
+            It "reports an address mismatch only when both addresses are known and differ" {
+                $tokenPath = Join-Path $TestDrive 'mismatch/token'
+                New-Item -ItemType Directory -Path (Split-Path -Parent $tokenPath) -Force | Out-Null
+                Set-Content -LiteralPath $tokenPath -Value 'abc'
+
+                (Test-JaxVaultTokenAddress -TokenPath $tokenPath -ConfiguredAddress 'https://a.example').Mismatch | Should -BeFalse
+
+                Set-Content -LiteralPath (Join-Path (Split-Path -Parent $tokenPath) 'address') -Value 'https://b.example/'
+                (Test-JaxVaultTokenAddress -TokenPath $tokenPath -ConfiguredAddress 'https://B.example').Mismatch | Should -BeFalse
+                $result = Test-JaxVaultTokenAddress -TokenPath $tokenPath -ConfiguredAddress 'https://a.example'
+                $result.Mismatch | Should -BeTrue
+                $result.SavedAddress | Should -Be 'https://b.example/'
+            }
+
+            It "Get-JaxVaultToken warns when the saved token belongs to another Vault" {
+                $tokenPath = Join-Path $TestDrive 'warn/token'
+                New-Item -ItemType Directory -Path (Split-Path -Parent $tokenPath) -Force | Out-Null
+                Set-Content -LiteralPath $tokenPath -Value 'abc'
+                Set-Content -LiteralPath (Join-Path (Split-Path -Parent $tokenPath) 'address') -Value 'https://other.example'
+                Mock Get-JaxVaultInjectorTokenPath { $null }
+                Mock Get-JaxVaultTokenPath { $tokenPath }
+                Mock Get-JaxVaultPluginConfig { @{ address = 'https://repo.example' } }
+                Mock Write-Warning {}
+                $oldRole = $env:VAULT_ROLE_ID
+                Remove-Item Env:\VAULT_ROLE_ID -ErrorAction SilentlyContinue
+                try {
+                    Get-JaxVaultToken | Should -Be 'abc'
+                } finally {
+                    if ($null -ne $oldRole) { $env:VAULT_ROLE_ID = $oldRole }
+                }
+                Assert-MockCalled Write-Warning -ParameterFilter { $Message -like '*https://other.example*https://repo.example*' }
+            }
+        }
+
+        Context "Get-JaxVaultEnv" {
+            BeforeEach {
+                $script:envTokenPath = Join-Path $TestDrive 'envtest/token'
+                New-Item -ItemType Directory -Path (Split-Path -Parent $script:envTokenPath) -Force | Out-Null
+                Remove-Item -LiteralPath $script:envTokenPath -ErrorAction SilentlyContinue
+                Mock Get-JaxRepoRoot { '/tmp/repo' }
+                Mock Get-JaxConfig { @{ } }
+                Mock Get-JaxVaultPluginConfig { @{ address = 'https://repo.example' } }
+                Mock Get-JaxVaultTokenPath { $script:envTokenPath }
+            }
+
+            It "emits pwsh assignments for the repository token" {
+                Set-Content -LiteralPath $script:envTokenPath -Value "to'ken"
+                $lines = @(Get-JaxVaultEnv)
+                $lines[0] | Should -Be "`$env:VAULT_ADDR = 'https://repo.example'"
+                $lines[1] | Should -Be "`$env:VAULT_TOKEN = 'to''ken'"
+            }
+
+            It "emits POSIX exports for bash" {
+                Set-Content -LiteralPath $script:envTokenPath -Value "to'ken"
+                $lines = @(Get-JaxVaultEnv -Shell bash)
+                $lines[0] | Should -Be "export VAULT_ADDR='https://repo.example'"
+                $lines[1] | Should -Be "export VAULT_TOKEN='to'\''ken'"
+            }
+
+            It "unsets VAULT_TOKEN when the repository has no token" {
+                $lines = @(Get-JaxVaultEnv -Shell bash 2>$null)
+                $lines | Should -Contain 'unset VAULT_TOKEN'
+                ($lines -join "`n") | Should -Not -Match 'export VAULT_TOKEN'
+            }
+        }
     }
 }
 

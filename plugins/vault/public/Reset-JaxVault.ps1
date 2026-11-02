@@ -10,6 +10,7 @@ function Reset-JaxVault {
         Remove-Item -Path $tokenPath -Force -ErrorAction SilentlyContinue
         Write-Host "Cleared stored Vault token." -ForegroundColor Yellow
     }
+    Remove-Item -LiteralPath (Get-JaxVaultTokenAddressPath -TokenPath $tokenPath) -Force -ErrorAction SilentlyContinue
 
     $env:VAULT_TOKEN = $null
     Write-Host "Cleared session VAULT_TOKEN." -ForegroundColor Yellow

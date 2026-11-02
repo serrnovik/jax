@@ -155,7 +155,10 @@ uncommitted.
 Vault and Docker plugins may be loaded without being active. Vault secret
 resolution requires `plugins.config.vault.enabled: true` or an explicit
 runtime override. Use `jx -C <repo-path> vault login` for interactive
-authentication and `jx -C <repo-path> vault status` for diagnostics. Set
+authentication and `jx -C <repo-path> vault status` for diagnostics. Before a
+bare `vault` command, load the repository's own token with
+`jx vault env | Out-String | Invoke-Expression` (pwsh) or
+`eval "$(jx vault env bash)"` (bash); never print that output. Set
 `plugins.config.vault.authMount` when GitHub auth is mounted somewhere other
 than `auth/github`. Never place tokens, personal paths, or
 environment-specific secrets in Jax config or agent instructions.

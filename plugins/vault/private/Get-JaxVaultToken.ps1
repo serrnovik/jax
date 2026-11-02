@@ -68,6 +68,11 @@ function Get-JaxVaultToken {
             # Ideally use DPAPI/Keychain but cross-platform logic is complex in pure PS.
             $token = Get-Content -Path $tokenPath -Raw -ErrorAction SilentlyContinue
             if (-not [string]::IsNullOrWhiteSpace($token)) {
+                $configuredAddress = $null
+                if ($vaultCfg -and $vaultCfg.Contains('address') -and $vaultCfg['address'] -is [string]) {
+                    $configuredAddress = [string]$vaultCfg['address']
+                }
+                Test-JaxVaultTokenAddress -TokenPath $tokenPath -ConfiguredAddress $configuredAddress -Warn | Out-Null
                 return $token.Trim()
             }
         } catch {}
