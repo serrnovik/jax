@@ -5,3 +5,6 @@
 *.psm1 text eol=lf
 *.sh text eol=lf
 *.cmd text eol=crlf
+shell/bin/* text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf

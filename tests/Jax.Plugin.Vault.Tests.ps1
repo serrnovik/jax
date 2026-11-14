@@ -327,7 +327,7 @@ Describe "Jax.Plugin.Vault" {
                     if ($script:promptCount -eq 2) { return '.jax/testvaultenv/vault' } # tokenDir
                     return 'token'                                                     # auth method
                 }
-                Mock Read-Host { param($Prompt, $AsSecureString) (ConvertTo-SecureString 'abc' -AsPlainText -Force) }
+                Mock Read-JaxVaultSecret { 'abc' }
 
                 # Simulate "bad" env values - should not prevent method prompt.
                 $oldAddr = $env:VAULT_ADDR
@@ -521,6 +521,40 @@ $value = [Console]::In.ReadToEnd()
                 } finally {
                     $env:GITHUB_TOKEN = $oldGitHubToken
                 }
+            }
+
+            It "reports a missing GitHub token instead of a SecureString error when the prompt is left empty" {
+                Mock Get-JaxVaultTokenPath { Join-Path ([System.IO.Path]::GetTempPath()) 'unused-token' }
+                Mock Get-JaxVaultPluginConfig { @{ address = 'https://vault.example'; tokenDir = '.jax/example/vault' } }
+                Mock Get-JaxRepoRoot { '/tmp/repo' }
+                Mock Get-JaxConfig { @{ } }
+                Mock Test-JaxVaultInputRedirected { $false }
+                Mock Read-Host { '' } -ParameterFilter { $MaskInput }
+                Mock Invoke-JaxNativeCommandWithStandardInput { throw 'must not be called' }
+
+                $oldGitHubToken = $env:GITHUB_TOKEN
+                try {
+                    Remove-Item Env:\GITHUB_TOKEN -ErrorAction SilentlyContinue
+                    {
+                        Set-JaxVaultToken -Method github -ErrorAction Stop
+                    } | Should -Throw '*GitHub token is required.*'
+                } finally {
+                    $env:GITHUB_TOKEN = $oldGitHubToken
+                }
+
+                Assert-MockCalled Read-Host -Times 3 -Exactly -ParameterFilter { $MaskInput }
+                Assert-MockCalled Invoke-JaxNativeCommandWithStandardInput -Times 0
+            }
+        }
+
+        Context "Read-JaxVaultSecret" {
+            It "retries empty input and returns the trimmed value" {
+                $script:secretAnswers = [System.Collections.Queue]::new(@('', '  ', ' dummy-value '))
+                Mock Test-JaxVaultInputRedirected { $false }
+                Mock Read-Host { $script:secretAnswers.Dequeue() } -ParameterFilter { $MaskInput }
+
+                Read-JaxVaultSecret -Prompt 'Secret' | Should -Be 'dummy-value'
+                Assert-MockCalled Read-Host -Times 3 -Exactly -ParameterFilter { $MaskInput }
             }
         }
 

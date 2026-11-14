@@ -108,6 +108,30 @@ Describe 'Standalone Jax packaging' {
             Should -Throw '*escapes the Jax source root*'
     }
 
+    It 'refuses to package POSIX shell files with CRLF line endings' {
+        $crlfRoot = Join-Path $script:testRoot 'crlf-source'
+        New-Item -ItemType Directory -Path (Join-Path $crlfRoot 'shell/bin') -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $script:sourceRoot 'Build-JaxPackage.ps1') -Destination $crlfRoot
+        Set-Content -LiteralPath (Join-Path $crlfRoot 'VERSION') -Value '0.1.10'
+        Set-Content -LiteralPath (Join-Path $crlfRoot 'Jax.psd1') -Value "@{ ModuleVersion = '0.1.10' }"
+        [IO.File]::WriteAllText((Join-Path $crlfRoot 'shell/bin/jx'), "#!/bin/sh`r`nexec pwsh`r`n")
+        # .cmd files keep CRLF and must not trip the guard.
+        [IO.File]::WriteAllText((Join-Path $crlfRoot 'shell/jx.cmd'), "@echo off`r`n")
+        @'
+@{
+    Version = '0.1.10'
+    Files = @()
+    Directories = @('shell')
+    DirectorySets = @()
+}
+'@ | Set-Content -LiteralPath (Join-Path $crlfRoot 'distribution-manifest.psd1')
+
+        { & (Join-Path $crlfRoot 'Build-JaxPackage.ps1') `
+                -OutputPath (Join-Path $script:testRoot 'crlf-package') } |
+            Should -Throw '*CR/CRLF line endings*shell*jx*'
+        Test-Path -LiteralPath (Join-Path $script:testRoot 'crlf-package') | Should -BeFalse
+    }
+
     It 'rejects symbolic links in packaged and installed manifest entries' -Skip:$IsWindows {
         $maliciousRoot = Join-Path $script:testRoot 'symlink-source'
         New-Item -ItemType Directory -Path $maliciousRoot -Force | Out-Null

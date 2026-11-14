@@ -120,6 +120,18 @@ try {
         }
     }
 
+    # POSIX shims and wrappers with CRLF endings fail to exec (`#!/bin/sh\r`),
+    # so refuse to package them. Windows .cmd files legitimately keep CRLF.
+    $shellStaging = Join-Path $stagingRoot 'shell'
+    if (Test-Path -LiteralPath $shellStaging) {
+        $crlfFiles = @(Get-ChildItem -LiteralPath $shellStaging -Recurse -File -Force |
+                Where-Object { $_.Extension -ne '.cmd' -and [IO.File]::ReadAllBytes($_.FullName) -contains 13 } |
+                ForEach-Object { [IO.Path]::GetRelativePath($stagingRoot, $_.FullName) })
+        if ($crlfFiles.Count -gt 0) {
+            throw "Refusing to package shell files with CR/CRLF line endings (must be LF): $($crlfFiles -join ', ')"
+        }
+    }
+
     $sourceCommit = 'unknown'
     if (Get-Command -Name git -ErrorAction SilentlyContinue) {
         try {

@@ -158,7 +158,7 @@ function Set-JaxVaultToken {
             $ghToken = if (Test-Path Env:\GITHUB_TOKEN) { $env:GITHUB_TOKEN } else { $null }
 
             if ([string]::IsNullOrWhiteSpace($ghToken)) {
-                $ghToken = Read-Host -Prompt "Enter GitHub Personal Access Token (hidden)" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+                $ghToken = Read-JaxVaultSecret -Prompt "Enter GitHub Personal Access Token (hidden)"
             }
 
             if ([string]::IsNullOrWhiteSpace($ghToken)) {
@@ -194,12 +194,12 @@ function Set-JaxVaultToken {
         }
     } elseif ($Method -eq 'token') {
         if ([string]::IsNullOrWhiteSpace($VaultToken)) {
-            $VaultToken = Read-Host -Prompt "Enter Vault Token (hidden)" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+            $VaultToken = Read-JaxVaultSecret -Prompt "Enter Vault Token (hidden)"
         }
     } else {
         Write-Warning "Method '$Method' is not yet fully implemented. Falling back to token prompt."
         if ([string]::IsNullOrWhiteSpace($VaultToken)) {
-            $VaultToken = Read-Host -Prompt "Enter Vault Token (hidden)" -AsSecureString | ConvertFrom-SecureString -AsPlainText
+            $VaultToken = Read-JaxVaultSecret -Prompt "Enter Vault Token (hidden)"
         }
     }
 
